@@ -1,6 +1,7 @@
 import { RequestMethod } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import * as bodyParser from 'body-parser'
 import { AppModule } from './app.module'
 import { HttpExceptionFilter } from './common/filters/http-exception.filter'
 import { LoggingInterceptor } from './common/interceptor/logging.interceptor'
@@ -24,6 +25,9 @@ async function bootstrap() {
   const config = new DocumentBuilder().setTitle('dip-core').build()
   const document = SwaggerModule.createDocument(app, config)
   SwaggerModule.setup('api', app, document)
+  // BodyParser 限制大小
+  app.use(bodyParser.json({ limit: '2mb' }))
+  app.use(bodyParser.urlencoded({ limit: '2mb', extended: true }))
 
   await app.listen(80)
 }
