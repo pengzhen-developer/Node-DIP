@@ -1,6 +1,6 @@
 {
-  "name": "nest-dip-group",
-  "version": "0.0.1",
+  "name": "dip-core",
+  "version": "0.1.0",
   "description": "",
   "author": "",
   "private": true,
@@ -12,6 +12,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
+    "db": "rm -rf entities1 & npx typeorm-model-generator -h 10.10.10.151 -d fusion_core_dip -p 3306 -u root -x P@ssw0rd -e mysql -o entities1 --noConfig true --ce pascal --cp camel",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -24,8 +25,13 @@
     "@nestjs/core": "^9.0.0",
     "@nestjs/mapped-types": "*",
     "@nestjs/platform-express": "^9.0.0",
+    "@nestjs/swagger": "^6.2.1",
+    "@nestjs/typeorm": "^9.0.1",
+    "cache-manager": "^5.1.6",
+    "mysql2": "^3.1.2",
     "reflect-metadata": "^0.1.13",
-    "rxjs": "^7.2.0"
+    "rxjs": "^7.2.0",
+    "typeorm": "^0.3.12"
   },
   "devDependencies": {
     "@nestjs/cli": "^9.0.0",

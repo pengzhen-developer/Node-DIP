@@ -6,7 +6,13 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  getHello(): string {
-    return this.appService.getHello()
+  bootstrap() {
+    return true
+  }
+
+  @Get('/re-cache')
+  async restore() {
+    await this.appService.cache()
+    return true
   }
 }

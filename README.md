@@ -58,6 +58,24 @@ $ yarn run test:e2e
 $ yarn run test:cov
 ```
 
+## Docker
+
+```bash
+# 修改 package.json 的 version！！！！！！
+修改版本号
+
+# build
+docker buildx build --platform=linux/amd64 -t dip-core .
+
+# tag
+docker tag dip-core:latest harbor.fusiontech.cn/dip_datacore/dip-core:latest
+docker tag dip-core:latest harbor.fusiontech.cn/dip_datacore/dip-core:0.1.0
+
+# push
+docker push harbor.fusiontech.cn/dip_datacore/dip-core:latest
+docker push harbor.fusiontech.cn/dip_datacore/dip-core:0.1.0
+```
+
 ## Support
 
 Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
