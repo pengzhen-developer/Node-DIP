@@ -7,6 +7,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter'
 import { LoggingInterceptor } from './common/interceptor/logging.interceptor'
 import { TimeoutInterceptor } from './common/interceptor/timeout.interceptor'
 import { TransformInterceptor } from './common/interceptor/transform.interceptor'
+import { name, version } from './../package.json'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
@@ -22,7 +23,7 @@ async function bootstrap() {
   // 全局过滤器 - 异常提醒
   app.useGlobalFilters(new HttpExceptionFilter())
   // SwaggerModule
-  const config = new DocumentBuilder().setTitle('dip-core').build()
+  const config = new DocumentBuilder().setTitle(name).setVersion(version).build()
   const document = SwaggerModule.createDocument(app, config)
   SwaggerModule.setup('api', app, document)
   // BodyParser 限制大小

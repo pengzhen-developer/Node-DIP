@@ -8,14 +8,7 @@ import { DipService } from './dip.service'
 export class DipController {
   constructor(private readonly dipService: DipService) {}
 
-  @Get('test')
-  async test() {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve('Get /dip-core/test'), 1000)
-    })
-  }
-
-  @ApiOperation({ tags: ['DIP'], description: '根据入参分组' })
+  @ApiOperation({ tags: ['DIP'], description: '根据参数分组' })
   @Post('dip')
   async toDip(@Body() dipTodo: DipTodo | DipTodo[]): Promise<TDipInfo | TDipInfo[]> {
     // 刷新缓存
@@ -31,7 +24,7 @@ export class DipController {
     return Array.isArray(dipTodo) ? dipSettleList : dipSettleList[0]
   }
 
-  @ApiOperation({ tags: ['DIP'], description: '根据入参结算' })
+  @ApiOperation({ tags: ['DIP'], description: '根据参数结算' })
   @Post('settle')
   async toSettle(@Body() dipTodo: DipTodo | DipTodo[]): Promise<TDipInfo | TDipInfo[]> {
     // 刷新缓存
