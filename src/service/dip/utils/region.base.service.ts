@@ -122,10 +122,10 @@ export class RegionBaseService implements IRegionStrategy {
             const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
 
             dipInfoResult.oprnOprtCodeMatch = (formatParams.oprnOprtCode as string[]).filter((v) => dipOperations.includes(v)) ?? []
-            dipInfoResult.oprnOprtCodeMatchType = this.dipService.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
+            dipInfoResult.oprnOprtCodeMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
             dipInfoResult.oprnOprtCodeUnMatch = (formatParams.oprnOprtCode as string[]).filter((v) => !dipOperations.includes(v)) ?? []
-            dipInfoResult.oprnOprtCodeUnMatchType = this.dipService.getOprnOprtType(dipInfoResult.oprnOprtCodeUnMatch)
-            dipInfoResult.oprnOprtType = this.dipService.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
+            dipInfoResult.oprnOprtCodeUnMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeUnMatch)
+            dipInfoResult.oprnOprtType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
 
             dipInfoList.push(dipInfoResult)
           }
@@ -148,10 +148,10 @@ export class RegionBaseService implements IRegionStrategy {
             const dipOperationsSplitArray = dipOperations.map((item) => item.split('/'))?.flat()
             const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
             dipInfoResult.oprnOprtCodeMatch = (formatParams.oprnOprtCode as string[]).filter((v) => dipOperationsSplitArray.includes(v)) ?? []
-            dipInfoResult.oprnOprtCodeMatchType = this.dipService.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
+            dipInfoResult.oprnOprtCodeMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
             dipInfoResult.oprnOprtCodeUnMatch = (formatParams.oprnOprtCode as string[]).filter((v) => !dipOperationsSplitArray.includes(v)) ?? []
-            dipInfoResult.oprnOprtCodeUnMatchType = this.dipService.getOprnOprtType(dipInfoResult.oprnOprtCodeUnMatch)
-            dipInfoResult.oprnOprtType = this.dipService.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
+            dipInfoResult.oprnOprtCodeUnMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeUnMatch)
+            dipInfoResult.oprnOprtType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
 
             dipInfoList.push(dipInfoResult)
           }
@@ -160,7 +160,7 @@ export class RegionBaseService implements IRegionStrategy {
     }
 
     // 保守治疗组
-    if (dipInfoList.length === 0 && this.dipService.getOprnOprtType(formatParams.oprnOprtCode) === EnumOprnOprtType.保守治疗) {
+    if (dipInfoList.length === 0 && this.getOprnOprtType(formatParams.oprnOprtCode) === EnumOprnOprtType.保守治疗) {
       const dipInfo = dipList.find((item) => !item.oprnOprtCode)
 
       if (dipInfo) {
@@ -185,83 +185,7 @@ export class RegionBaseService implements IRegionStrategy {
    * 入基层组
    */
   intoBasicGroups(rawParams: DipTodo, formatParams: DipTodo, dipContentList: TDipContents): TDipInfo[] {
-    const dipInfoList: TDipInfo[] = []
-
-    // 获取缓存 key
-    const cacheKey = getCacheKey(formatParams.region, formatParams.version, formatParams.diagCode[0].substring(0, 5))
-    // 判定诊断类目
-    const dipList = dipContentList[cacheKey]?.concat([]) ?? []
-
-    // 有手术及操作判定
-    // 非保守治疗组，依次判定手术及操作
-    if (formatParams.oprnOprtCode.length > 0) {
-      for (let i = 0; i < dipList.length; i++) {
-        const dipInfo = dipList[i]
-
-        // 1. 判定手术是否单一存在
-        if (dipInfo.oprnOprtCode && dipInfo.oprnOprtCode.indexOf('+') === -1) {
-          const dipOperations = dipInfo.oprnOprtCode?.split('/') ?? []
-
-          if (dipOperations.some((item) => formatParams.oprnOprtCode.includes(item))) {
-            const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
-            dipInfoResult.oprnOprtCodeMatch = (formatParams.oprnOprtCode as string[]).filter((v) => dipOperations.includes(v)) ?? []
-            dipInfoResult.oprnOprtCodeMatchType = this.dipService.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
-            dipInfoResult.oprnOprtCodeUnMatch = (formatParams.oprnOprtCode as string[]).filter((v) => !dipOperations.includes(v)) ?? []
-            dipInfoResult.oprnOprtCodeUnMatchType = this.dipService.getOprnOprtType(dipInfoResult.oprnOprtCodeUnMatch)
-            dipInfoResult.oprnOprtType = this.dipService.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
-
-            dipInfoList.push(dipInfoResult)
-          }
-        }
-        // 2. 判定手术是否联合存在（组内手术操作存在 + 符号）
-        else if (dipInfo.oprnOprtCode && dipInfo.oprnOprtCode.indexOf('+') !== -1) {
-          const dipOperations = dipInfo?.oprnOprtCode?.split('+') ?? []
-          if (
-            dipOperations.every((item) => {
-              if (
-                // 任一 / 满足
-                (item.indexOf('/') !== -1 && item.split('/').some((item) => formatParams.oprnOprtCode.includes(item))) ||
-                // 所有 + 满足
-                (item.indexOf('/') === -1 && formatParams.oprnOprtCode.includes(item))
-              ) {
-                return true
-              }
-            })
-          ) {
-            const dipOperationsSplitArray = dipOperations.map((item) => item.split('/'))?.flat()
-            const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
-            dipInfoResult.oprnOprtCodeMatch = (formatParams.oprnOprtCode as string[]).filter((v) => dipOperationsSplitArray.includes(v)) ?? []
-            dipInfoResult.oprnOprtCodeMatchType = this.dipService.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
-            dipInfoResult.oprnOprtCodeUnMatch = (formatParams.oprnOprtCode as string[]).filter((v) => !dipOperationsSplitArray.includes(v)) ?? []
-            dipInfoResult.oprnOprtCodeUnMatchType = this.dipService.getOprnOprtType(dipInfoResult.oprnOprtCodeUnMatch)
-            dipInfoResult.oprnOprtType = this.dipService.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
-
-            dipInfoList.push(dipInfoResult)
-          }
-        }
-      }
-    }
-
-    // 保守治疗组
-    if (dipInfoList.length === 0 && this.dipService.getOprnOprtType(formatParams.oprnOprtCode) === EnumOprnOprtType.保守治疗) {
-      const dipInfo = dipList.find((item) => !item.oprnOprtCode)
-
-      if (dipInfo) {
-        const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
-        dipInfoResult.oprnOprtCodeMatch = []
-        dipInfoResult.oprnOprtCodeUnMatch = formatParams.oprnOprtCode as string[]
-        dipInfoResult.oprnOprtType = EnumOprnOprtType.保守治疗
-
-        dipInfoList.push(dipInfoResult)
-      }
-    }
-
-    this.dipService.logger({
-      title: '入基层组',
-      description: dipInfoList
-    })
-
-    return dipInfoList
+    return this.intoCoreGroups(rawParams, formatParams, dipContentList)
   }
 
   /**
@@ -269,7 +193,7 @@ export class RegionBaseService implements IRegionStrategy {
    */
   intoComprehensiveGroup(rawParams: DipTodo, formatParams: DipTodo, dipContentList: TDipContents): TDipInfo[] {
     const dipInfoList: TDipInfo[] = []
-    const operationLevel = this.dipService.getOprnOprtType(formatParams.oprnOprtCode)
+    const operationLevel = this.getOprnOprtType(formatParams.oprnOprtCode)
 
     // 从诊断亚目开始，入精确综合组
     for (let i = 3; i > 0; i--) {
@@ -387,7 +311,7 @@ export class RegionBaseService implements IRegionStrategy {
 
     this.dipService.logger({
       title: '根据手术操作匹配数量选择组',
-      description: dipInfoList
+      description: chooseGroupByMatchQuantity
     })
 
     return chooseGroupByMatchQuantity
@@ -502,5 +426,71 @@ export class RegionBaseService implements IRegionStrategy {
     })
 
     return chooseGroupByDipType
+  }
+
+  /**
+   * 获取最大手术操作类型
+   */
+  public getOprnOprtType(oprnOprtCode, toVersion = 'YB_2.0'): string {
+    if (oprnOprtCode.length === 0) {
+      return EnumOprnOprtType.保守治疗
+    }
+
+    if (Array.isArray(oprnOprtCode) && oprnOprtCode.length > 0) {
+      const temp = oprnOprtCode.reduce((p, c) => {
+        const cacheKeyP = getCacheKey(toVersion, p)
+        const cacheKeyC = getCacheKey(toVersion, c)
+
+        return this.getOprnSort(this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKeyP]?.oprnOprtType) >=
+          this.getOprnSort(this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKeyC]?.oprnOprtType)
+          ? p
+          : c
+      })
+      const cacheKey = getCacheKey(toVersion, temp)
+
+      return this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtType ?? EnumOprnOprtType.保守治疗
+    } else {
+      const cacheKey = getCacheKey(toVersion, oprnOprtCode)
+
+      return this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtType ?? EnumOprnOprtType.保守治疗
+    }
+  }
+
+  /**
+   * 获取手术操作顺序码
+   */
+  public getOprnSort(oprnOprtCode) {
+    const sortArr = [EnumOprnOprtType.保守治疗, EnumOprnOprtType.诊断性操作, EnumOprnOprtType.治疗性操作, EnumOprnOprtType.相关手术]
+
+    return sortArr.indexOf(oprnOprtCode)
+  }
+
+  /**
+   * 是否保守治疗
+   */
+  public isConservative(oprnOprtCode, toVersion = 'YB_2.0'): boolean {
+    if (oprnOprtCode.length === 0) {
+      return true
+    }
+
+    if (Array.isArray(oprnOprtCode) && oprnOprtCode.length > 0) {
+      return oprnOprtCode.every((oprnOprtCode) => {
+        const cacheKey = getCacheKey(toVersion, oprnOprtCode)
+
+        if (!this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]) {
+          return true
+        } else {
+          return this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnSincType === '0类' && this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtLevel < '3'
+        }
+      })
+    } else {
+      const cacheKey = getCacheKey(toVersion, oprnOprtCode)
+
+      if (!this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]) {
+        return true
+      } else {
+        return this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnSincType === '0类' && this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtLevel < '3'
+      }
+    }
   }
 }

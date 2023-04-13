@@ -31,7 +31,7 @@ export class Region_420900_2022 extends RegionBaseService {
 
   intoComprehensiveGroup(rawParams: DipTodo, formatParams: DipTodo, dipContentList: TDipContents): TDipInfo[] {
     const dipInfoList: TDipInfo[] = []
-    const operationLevel = this.dipService.getOprnOprtType(formatParams.oprnOprtCode)
+    const operationLevel = super.getOprnOprtType(formatParams.oprnOprtCode)
 
     // 从诊断亚目开始，入精确综合组
     for (let i = 3; i > 0; i--) {

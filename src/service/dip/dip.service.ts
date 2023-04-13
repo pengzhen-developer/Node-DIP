@@ -3,18 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { InsertResult, Repository } from 'typeorm'
 import { Cache } from 'cache-manager'
 import { getCacheKey } from 'src/utils'
-import {
-  TDipContents,
-  TDipConfigExcludeIcd9,
-  TDipConfigSettle,
-  TImpIcd9,
-  TImpIcd10,
-  TDebug,
-  TDipInfo,
-  TDipContentsSupplement,
-  EnumOprnOprtType,
-  EnumDipUnMatchCode
-} from 'src/types/dip.type'
+import { TDipContents, TDipConfigExcludeIcd9, TDipConfigSettle, TImpIcd9, TImpIcd10, TDebug, TDipInfo, TDipContentsSupplement, EnumDipUnMatchCode } from 'src/types/dip.type'
 import { DipTodo } from 'src/entities/DipTodo'
 import { DipTodoResult } from 'src/entities/DipTodoResult'
 import { RegionStrategyService } from './utils/region.strategy.service'
@@ -260,37 +249,6 @@ export class DipService implements OnApplicationBootstrap {
   }
 
   /**
-   * 获取最大手术操作类型
-   */
-  public getOprnOprtType(oprnOprtCode, toVersion = 'YB_2.0'): string {
-    const oprnOprtCodeSortFn = (oprnOprtCode) => {
-      const sortArr = [EnumOprnOprtType.保守治疗, EnumOprnOprtType.诊断性操作, EnumOprnOprtType.治疗性操作, EnumOprnOprtType.相关手术]
-
-      return sortArr.indexOf(oprnOprtCode)
-    }
-
-    if (oprnOprtCode.length === 0) {
-      return EnumOprnOprtType.保守治疗
-    }
-
-    if (Array.isArray(oprnOprtCode) && oprnOprtCode.length > 0) {
-      const temp = oprnOprtCode.reduce((p, c) => {
-        const cacheKeyP = getCacheKey(toVersion, p)
-        const cacheKeyC = getCacheKey(toVersion, c)
-
-        return oprnOprtCodeSortFn(this.CACHE_CONTENTS_ICD9_YB_2_0[cacheKeyP]?.oprnOprtType) >= oprnOprtCodeSortFn(this.CACHE_CONTENTS_ICD9_YB_2_0[cacheKeyC]?.oprnOprtType) ? p : c
-      })
-      const cacheKey = getCacheKey(toVersion, temp)
-
-      return this.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtType ?? EnumOprnOprtType.保守治疗
-    } else {
-      const cacheKey = getCacheKey(toVersion, oprnOprtCode)
-
-      return this.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtType ?? EnumOprnOprtType.保守治疗
-    }
-  }
-
-  /**
    * 获取结算配置信息
    */
   public getConfigSettle(region: string, version: string, hosCode: string): DipConfigSettle {
@@ -298,7 +256,7 @@ export class DipService implements OnApplicationBootstrap {
   }
 
   /**
-   * 异常分组结果
+   * 组装异常分组结果
    */
   public setUnDipResult(code, message, rawParams: DipTodo): TDipInfo {
     const unDipInfo = { ...rawParams } as TDipInfo
