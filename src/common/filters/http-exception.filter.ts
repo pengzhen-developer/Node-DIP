@@ -1,4 +1,5 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common'
+import { name, version } from './../../../package.json'
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -11,6 +12,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
     // 设置错误信息
     const message = httpException.message ? httpException.message : `${status >= 500 ? '服务器错误（Service Error）' : '客户端错误（Client Error）'}`
     const errorResponse = {
+      name: name,
+      version: version,
       code: 500,
       message,
       data: null
