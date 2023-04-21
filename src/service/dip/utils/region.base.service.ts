@@ -306,6 +306,13 @@ export class RegionBaseService implements IRegionStrategy {
       return []
     }
 
+    // 存在 + 关系
+    if (dipInfoList.some((item) => item.oprnOprtCode?.includes('+'))) {
+      const maxMatchGroup = dipInfoList
+        .filter((item) => item.oprnOprtCode.includes('+'))
+        .reduce((p, c) => ((p.oprnOprtCode.match(/\+/g) || []).length > (c.oprnOprtCode.match(/\+/g) || []).length ? p : c))
+      dipInfoList = dipInfoList.filter((item) => (item.oprnOprtCode.match(/\+/g) || []).length === maxMatchGroup.oprnOprtCode.match(/\+/g).length)
+    }
     const maxMatchGroup = dipInfoList.reduce((p, c) => (p.oprnOprtCodeMatch?.length > c.oprnOprtCodeMatch?.length ? p : c))
     const chooseGroupByMatchQuantity = dipInfoList.filter((item) => item.oprnOprtCodeMatch.length === maxMatchGroup.oprnOprtCodeMatch.length)
 
