@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common'
 import { DipTodo } from 'src/entities/DipTodo'
-import { EnumRegion, EnumOprnOprtType, TDipContents, TDipInfo, EnumDipType } from 'src/types/dip.type'
+import { EnumRegion, EnumOprnOprtType, TDipContents, TDipInfo, EnumDipType, EnumDeviation, EnumInsuranceType } from 'src/types/dip.type'
 import { getCacheKey } from 'src/utils'
 import { DipService } from '../dip.service'
 import { RegionBaseService } from './region.base.service'
@@ -27,6 +27,76 @@ export class Region_420900_2022 extends RegionBaseService {
     decideGroups = this.chooseUniqueGroupByDipType(rawParams, formatParams, [...decideGroups, ...comprehensiveGroup])
 
     return decideGroups[0]
+  }
+
+  toSettle(rawParams: DipTodo, formatParams: DipTodo, dipInfo: TDipInfo): TDipInfo {
+    /** 结算系数 */
+    const configSettle = this.dipService.getConfigSettle(rawParams.region, rawParams.version, rawParams.hosCode)
+    /** 病种分值 */
+    const dipScore = dipInfo.dipSupplementName ? dipInfo.dipSupplementScore * dipInfo.dipSupplementFactor : dipInfo.dipScore
+    /** 病种分值单价（模拟均费） */
+    const dipMockScorePrice = configSettle.factorScorePrice
+    /** 均费调整系数 */
+    const dipFactorAvgAmount = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup : configSettle.factorAvgAmount
+    /** 结算分值单价 */
+    const dipScorePrice = rawParams.insuranceType === EnumInsuranceType.职工 ? configSettle.factorEmployeePrice : configSettle.factorResidentPrice
+    /** 结算调整系数 */
+    const dipFactorSettle = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup : configSettle.factorHospital
+
+    /** 计算 DIP 均费 */
+    const getDipAvgAmount = () => {
+      // 存在辅助目录均费，使用: 辅助目录均费 * 均费调整系数
+      if (dipInfo.dipSupplementAvgAmount) {
+        return dipInfo.dipSupplementAvgAmount * dipFactorAvgAmount
+      }
+      // 存在目录均费，使用: 目录均费 * 医疗机构系数
+      else if (dipInfo.dipAvgAmount) {
+        return dipInfo.dipAvgAmount * dipFactorAvgAmount
+      }
+      // 均不存在，使用: 病种分值 * 分值单价  * 调整系数
+      else {
+        return dipScore * (dipMockScorePrice ?? dipScorePrice) * dipFactorAvgAmount
+      }
+    }
+    /** 计算 DIP 结算分值 */
+    const getDipSettleScore = () => {
+      const sumAmount = rawParams.sumAmount ?? 0
+      const dipAvgAmount = getDipAvgAmount()
+
+      if (dipAvgAmount === 0) {
+        return 0
+      }
+
+      // 偏差类型 - 高倍率
+      // 费用在 200%以上的病例病种分值 =〔(该病例医疗总费用 ÷ 上一年度同级别定点医疗机构该病种次均医疗总费用 - 2）+ 1〕 × 该病种分值
+      if (sumAmount > dipAvgAmount * 2) {
+        dipInfo.dipSettleDeviation = EnumDeviation.高倍率
+        return (sumAmount / dipAvgAmount - 2 + 1) * dipScore
+      }
+      // 偏差类型 - 低倍率
+      // 费用在 50%以下的病例病种分值 = 该病例医疗总费用 ÷ 上一年度同级别定点医疗机构该病种平均费用 × 该病种分值
+      else if (sumAmount < dipAvgAmount * 0.5) {
+        dipInfo.dipSettleDeviation = EnumDeviation.低倍率
+        return (sumAmount / dipAvgAmount) * dipScore
+      }
+      // 偏差类型 - 正常倍率
+      else {
+        dipInfo.dipSettleDeviation = EnumDeviation.正常倍率
+        return dipScore
+      }
+    }
+
+    dipInfo.dipSettleAvgAmount = getDipAvgAmount()
+    dipInfo.dipSettleScore = getDipSettleScore()
+    dipInfo.dipSettleScorePriceEmployee = configSettle.factorEmployeePrice
+    dipInfo.dipSettleScorePriceResident = configSettle.factorResidentPrice
+    dipInfo.dipSettleScorePrice = dipScorePrice
+    dipInfo.dipSettleFactorHospital = configSettle.factorHospital
+    dipInfo.dipSettleFactorBasicGroup = dipInfo.dipFactorBasicGroup
+    dipInfo.dipSettleFactor = dipFactorSettle
+    dipInfo.dipSettleAmount = parseFloat(dipInfo.dipScore as any) === 0 ? rawParams.sumAmount : dipInfo.dipSettleScore * dipInfo.dipSettleScorePrice * dipFactorSettle ?? 0
+
+    return dipInfo
   }
 
   intoComprehensiveGroup(rawParams: DipTodo, formatParams: DipTodo, dipContentList: TDipContents): TDipInfo[] {
