@@ -36,7 +36,15 @@ export class RegionBaseService implements IRegionStrategy {
     /** 结算系数 */
     const configSettle = this.dipService.getConfigSettle(rawParams.region, rawParams.version, rawParams.hosCode)
     // 平均费用
-    const configAvgAmount = this.dipService.getConfigAvgMount(rawParams.region, rawParams.version, configSettle.hospitalLevel, dipInfo.dipCode, rawParams.insuranceType)
+    const configAvgAmount = this.dipService.getConfigAvgMount(
+      rawParams.region,
+      rawParams.version,
+      configSettle.hospitalLevel,
+      dipInfo.dipCode,
+      dipInfo.dipSupplementType,
+      dipInfo.dipSupplementName,
+      rawParams.insuranceType
+    )
     /** 病种分值 */
     const dipScore = dipInfo.dipSupplementName ? dipInfo.dipSupplementScore * dipInfo.dipSupplementFactor : dipInfo.dipScore
     /** 病种分值单价（模拟均费） */
@@ -275,7 +283,7 @@ export class RegionBaseService implements IRegionStrategy {
       if (dipContentsSupplement?.length > 0) {
         // 年龄辅助目录 - 表达式关键要素
         const { years: $ExpressionAgeYears, days: $ExpressionAgeDays } = getAge(new Date(rawParams.birthDate), new Date(rawParams.inHospitalDate))
-        // 耐多药辅助目录 - 表达式关键要素
+        // 肿瘤:肺结核耐药 - 表达式关键要素
         const $ExpressionDiagCode = formatParams.diagCode
 
         // 执行辅助目录命中表达式
@@ -340,8 +348,24 @@ export class RegionBaseService implements IRegionStrategy {
         // 结算系数
         const configSettle = this.dipService.getConfigSettle(rawParams.region, rawParams.version, rawParams.hosCode)
         // 平均费用
-        const configPAvgAmount = this.dipService.getConfigAvgMount(rawParams.region, rawParams.version, configSettle.hospitalLevel, p.dipCode, rawParams.insuranceType)
-        const configCAvgAmount = this.dipService.getConfigAvgMount(rawParams.region, rawParams.version, configSettle.hospitalLevel, c.dipCode, rawParams.insuranceType)
+        const configPAvgAmount = this.dipService.getConfigAvgMount(
+          rawParams.region,
+          rawParams.version,
+          configSettle.hospitalLevel,
+          p.dipCode,
+          p.dipSupplementType,
+          p.dipSupplementName,
+          rawParams.insuranceType
+        )
+        const configCAvgAmount = this.dipService.getConfigAvgMount(
+          rawParams.region,
+          rawParams.version,
+          configSettle.hospitalLevel,
+          c.dipCode,
+          c.dipSupplementType,
+          c.dipSupplementName,
+          rawParams.insuranceType
+        )
 
         const sumAmount = rawParams.sumAmount ?? 0
         const pDipAvgAmount =

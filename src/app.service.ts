@@ -134,7 +134,15 @@ export class AppService implements OnModuleInit {
     const configAvgAmountList = await this.configAvgAmountRepository.find()
 
     configAvgAmountList.forEach((configAvgAmount) => {
-      const cacheKey = getCacheKey(configAvgAmount.region, configAvgAmount.version, configAvgAmount.hospitalLevel, configAvgAmount.dipCode, configAvgAmount.insuranceType)
+      const cacheKey = getCacheKey(
+        configAvgAmount.region,
+        configAvgAmount.version,
+        configAvgAmount.hospitalLevel,
+        configAvgAmount.dipCode,
+        configAvgAmount.dipSupplementType,
+        configAvgAmount.dipSupplementName,
+        configAvgAmount.insuranceType
+      )
 
       CACHE_DIP_CONFIG_AVG_AMOUNT[cacheKey] = configAvgAmount
     })

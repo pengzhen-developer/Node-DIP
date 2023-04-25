@@ -33,7 +33,15 @@ export class Region_420900_2022 extends RegionBaseService {
     /** 结算系数 */
     const configSettle = this.dipService.getConfigSettle(rawParams.region, rawParams.version, rawParams.hosCode)
     // 平均费用
-    const configAvgAmount = this.dipService.getConfigAvgMount(rawParams.region, rawParams.version, configSettle.hospitalLevel, dipInfo.dipCode, rawParams.insuranceType)
+    const configAvgAmount = this.dipService.getConfigAvgMount(
+      rawParams.region,
+      rawParams.version,
+      configSettle.hospitalLevel,
+      dipInfo.dipCode,
+      dipInfo.dipSupplementType,
+      dipInfo.dipSupplementName,
+      rawParams.insuranceType
+    )
     /** 病种分值 */
     const dipScore = dipInfo.dipSupplementName ? dipInfo.dipSupplementScore * dipInfo.dipSupplementFactor : dipInfo.dipScore
     /** 病种分值单价（模拟均费） */

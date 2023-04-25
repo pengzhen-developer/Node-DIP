@@ -272,8 +272,17 @@ export class DipService implements OnApplicationBootstrap {
   /**
    * 获取平均费用配置信息
    */
-  public getConfigAvgMount(region: string, version: string, hospitalLevel: number, dipCode: string, insuranceType: string): DipConfigAvgAmount {
-    return this.CACHE_DIP_CONFIG_AVG_AMOUNT[getCacheKey(region, version, hospitalLevel, dipCode, insuranceType)]
+  public getConfigAvgMount(
+    region: string,
+    version: string,
+    hospitalLevel: number,
+    dipCode: string,
+    dipSupplementType: string,
+    dipSupplementName: string,
+    insuranceType: string
+  ): DipConfigAvgAmount {
+    const cacheKey = getCacheKey(region, version, hospitalLevel, dipCode, dipSupplementType, dipSupplementName, insuranceType)
+    return this.CACHE_DIP_CONFIG_AVG_AMOUNT[cacheKey]
   }
 
   /**
