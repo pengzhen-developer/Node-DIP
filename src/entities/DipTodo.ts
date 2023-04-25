@@ -70,4 +70,13 @@ export class DipTodo {
 
   @Column('decimal', { name: 'yb_dip_amount', nullable: true, comment: '医保结算金额', precision: 12, scale: 4 })
   ybDipAmount?: number | null
+
+  @Column('varchar', { name: 'yb_dip_supplement_type', nullable: true, comment: '医保辅助目录类型', length: 10 })
+  ybDipSupplementType?: string | null
+
+  @Column('varchar', { name: 'yb_dip_supplement_name', nullable: true, comment: '医保辅助目录名称', length: 10 })
+  ybDipSupplementName?: string | null
+
+  @Column('decimal', { name: 'yb_dip_supplement_factor', nullable: true, comment: '医保辅助目录系数', precision: 12, scale: 4 })
+  ybDipSupplementFactor?: number | null
 }

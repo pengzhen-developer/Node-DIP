@@ -15,6 +15,12 @@ export class DipConfigAvgAmount {
   @Column('text', { name: 'dip_code', nullable: true, comment: 'DIP 编码' })
   dipCode: string | null
 
+  @Column('varchar', { name: 'dip_supplement_type', nullable: true, comment: 'DIP 辅助目录类型', length: 30 })
+  dipSupplementType: string | null
+
+  @Column('varchar', { name: 'dip_supplement_name', nullable: true, comment: 'DIP 辅助目录名称', length: 30 })
+  dipSupplementName: string | null
+
   /** DIP 平均费用 */
   @Column('decimal', { name: 'dip_avg_amount', nullable: true, comment: 'DIP 平均费用', precision: 10, scale: 4 })
   dipAvgAmount: number | null
