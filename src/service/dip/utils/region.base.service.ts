@@ -35,6 +35,8 @@ export class RegionBaseService implements IRegionStrategy {
   toSettle(rawParams: DipTodo, formatParams: DipTodo, dipInfo: TDipInfo): TDipInfo {
     /** 结算系数 */
     const configSettle = this.dipService.getConfigSettle(rawParams.region, rawParams.version, rawParams.hosCode)
+    // 平均费用
+    const configAvgAmount = this.dipService.getConfigAvgMount(rawParams.region, rawParams.version, configSettle.hospitalLevel, dipInfo.dipCode, rawParams.insuranceType)
     /** 病种分值 */
     const dipScore = dipInfo.dipSupplementName ? dipInfo.dipSupplementScore * dipInfo.dipSupplementFactor : dipInfo.dipScore
     /** 病种分值单价（模拟均费） */
@@ -50,11 +52,11 @@ export class RegionBaseService implements IRegionStrategy {
     const getDipAvgAmount = () => {
       // 存在辅助目录均费，使用: 辅助目录均费 * 均费调整系数
       if (dipInfo.dipSupplementAvgAmount) {
-        return dipInfo.dipSupplementAvgAmount * dipFactorAvgAmount
+        return (configAvgAmount?.dipAvgAmount ?? dipInfo.dipSupplementAvgAmount) * dipFactorAvgAmount
       }
       // 存在目录均费，使用: 目录均费 * 医疗机构系数
       else if (dipInfo.dipAvgAmount) {
-        return dipInfo.dipAvgAmount * dipFactorAvgAmount
+        return (configAvgAmount?.dipAvgAmount ?? dipInfo.dipAvgAmount) * dipFactorAvgAmount
       }
       // 均不存在，使用: 病种分值 * 分值单价  * 调整系数
       else {
@@ -332,20 +334,25 @@ export class RegionBaseService implements IRegionStrategy {
       return []
     }
 
-    // 结算系数
-    const configSettle = this.dipService.getConfigSettle(rawParams.region, rawParams.version, rawParams.hosCode)
-
     // （均费与费用绝对值越小，优先级越高）
     const chooseGroupByAbsoluteFee = [
       dipInfoList.reduce((p, c) => {
+        // 结算系数
+        const configSettle = this.dipService.getConfigSettle(rawParams.region, rawParams.version, rawParams.hosCode)
+        // 平均费用
+        const configPAvgAmount = this.dipService.getConfigAvgMount(rawParams.region, rawParams.version, configSettle.hospitalLevel, p.dipCode, rawParams.insuranceType)
+        const configCAvgAmount = this.dipService.getConfigAvgMount(rawParams.region, rawParams.version, configSettle.hospitalLevel, c.dipCode, rawParams.insuranceType)
+
         const sumAmount = rawParams.sumAmount ?? 0
         const pDipAvgAmount =
+          configPAvgAmount?.dipAvgAmount ??
           p.dipSupplementAvgAmount ??
           p.dipAvgAmount ??
           (rawParams.insuranceType === EnumInsuranceType.职工
             ? configSettle.factorEmployeePrice * (p.dipSupplementScore ?? p.dipScore)
             : configSettle.factorResidentPrice * (p.dipSupplementScore ?? p.dipScore))
         const cDipAvgAmount =
+          configCAvgAmount?.dipAvgAmount ??
           c.dipSupplementAvgAmount ??
           c.dipAvgAmount ??
           (rawParams.insuranceType === EnumInsuranceType.职工

@@ -14,9 +14,6 @@ export class DipContentsSupplement {
   @Column('text', { name: 'dip_code', nullable: true, comment: 'DIP 编码' })
   dipCode: string | null
 
-  @Column('text', { name: 'dip_name', nullable: true, comment: 'DIP 名称' })
-  dipName: string | null
-
   @Column('varchar', { name: 'dip_supplement_type', nullable: true, comment: 'DIP 辅助目录类型', length: 30 })
   dipSupplementType: string | null
 

@@ -5,6 +5,7 @@ import { DipTodo } from 'src/entities/DipTodo'
 import { ImpIcd10 } from 'src/entities/ImpIcd10'
 import { ImpIcd9 } from 'src/entities/ImpIcd9'
 import { DipContentsSupplement } from 'src/entities/DipContentsSupplement'
+import { DipConfigAvgAmount } from 'src/entities/DipConfigAvgAmount'
 
 export interface IRegionStrategy {
   /** 分组 */
@@ -20,6 +21,10 @@ export type TDipConfigExcludeIcd9 = {
 
 export type TDipConfigSettle = {
   [key: string]: DipConfigSettle
+}
+
+export type TDipConfigAvgAmount = {
+  [key: string]: DipConfigAvgAmount
 }
 
 export type TImpIcd9 = {

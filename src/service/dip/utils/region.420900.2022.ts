@@ -32,6 +32,8 @@ export class Region_420900_2022 extends RegionBaseService {
   toSettle(rawParams: DipTodo, formatParams: DipTodo, dipInfo: TDipInfo): TDipInfo {
     /** 结算系数 */
     const configSettle = this.dipService.getConfigSettle(rawParams.region, rawParams.version, rawParams.hosCode)
+    // 平均费用
+    const configAvgAmount = this.dipService.getConfigAvgMount(rawParams.region, rawParams.version, configSettle.hospitalLevel, dipInfo.dipCode, rawParams.insuranceType)
     /** 病种分值 */
     const dipScore = dipInfo.dipSupplementName ? dipInfo.dipSupplementScore * dipInfo.dipSupplementFactor : dipInfo.dipScore
     /** 病种分值单价（模拟均费） */
@@ -47,11 +49,11 @@ export class Region_420900_2022 extends RegionBaseService {
     const getDipAvgAmount = () => {
       // 存在辅助目录均费，使用: 辅助目录均费 * 均费调整系数
       if (dipInfo.dipSupplementAvgAmount) {
-        return dipInfo.dipSupplementAvgAmount * dipFactorAvgAmount
+        return (configAvgAmount?.dipAvgAmount ?? dipInfo.dipSupplementAvgAmount) * dipFactorAvgAmount
       }
       // 存在目录均费，使用: 目录均费 * 医疗机构系数
       else if (dipInfo.dipAvgAmount) {
-        return dipInfo.dipAvgAmount * dipFactorAvgAmount
+        return (configAvgAmount?.dipAvgAmount ?? dipInfo.dipAvgAmount) * dipFactorAvgAmount
       }
       // 均不存在，使用: 病种分值 * 分值单价  * 调整系数
       else {

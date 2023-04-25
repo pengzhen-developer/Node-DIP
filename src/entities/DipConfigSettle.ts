@@ -17,6 +17,9 @@ export class DipConfigSettle {
   @Column('varchar', { name: 'hospital_name', nullable: true, comment: '医疗机构名称', length: 30 })
   hospitalName: string | null
 
+  @Column('varchar', { name: 'hospital_level', nullable: true, comment: '医疗机构结算等级', length: 30 })
+  hospitalLevel: number | null
+
   /** 医疗机构调整系数 */
   @Column('decimal', { name: 'factor_hospital', nullable: true, comment: '调整系数-医疗机构', precision: 10, scale: 4 })
   factorHospital: number | null

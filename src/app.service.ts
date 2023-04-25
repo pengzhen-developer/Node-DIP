@@ -7,6 +7,7 @@ import { DipContents } from './entities/DipContents'
 import { DipContentsSupplement } from './entities/DipContentsSupplement'
 import { DipConfigExcludeIcd9 } from './entities/DipConfigExcludeIcd9'
 import { DipConfigSettle } from './entities/DipConfigSettle'
+import { DipConfigAvgAmount } from './entities/DipConfigAvgAmount'
 import { ImpIcd9 } from './entities/ImpIcd9'
 import { ImpIcd10 } from './entities/ImpIcd10'
 import { EnumDipType } from './types/dip.type'
@@ -18,6 +19,7 @@ export class AppService implements OnModuleInit {
     @InjectRepository(DipContentsSupplement) private dipContentsSupplement: Repository<DipContentsSupplement>,
     @InjectRepository(DipConfigExcludeIcd9) private configExcludeICD9Repository: Repository<DipConfigExcludeIcd9>,
     @InjectRepository(DipConfigSettle) private configFactorRepository: Repository<DipConfigSettle>,
+    @InjectRepository(DipConfigAvgAmount) private configAvgAmountRepository: Repository<DipConfigAvgAmount>,
     @InjectRepository(ImpIcd9) private impICD9Repository: Repository<ImpIcd9>,
     @InjectRepository(ImpIcd10) private impICD10Repository: Repository<ImpIcd10>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache
@@ -31,6 +33,7 @@ export class AppService implements OnModuleInit {
     await this.cacheICD10()
     await this.cacheDipConfigExcludeIcd9()
     await this.cacheDipConfigSettle()
+    await this.cacheDipConfigAvgAmount()
   }
 
   async cache() {
@@ -40,6 +43,7 @@ export class AppService implements OnModuleInit {
     await this.cacheICD10()
     await this.cacheDipConfigExcludeIcd9()
     await this.cacheDipConfigSettle()
+    await this.cacheDipConfigAvgAmount()
   }
 
   private async cacheDipContents() {
@@ -122,6 +126,20 @@ export class AppService implements OnModuleInit {
     })
 
     await this.cacheManager.set('CACHE_DIP_CONFIG_SETTLE', CACHE_DIP_CONFIG_SETTLE, 0)
+  }
+
+  private async cacheDipConfigAvgAmount() {
+    const CACHE_DIP_CONFIG_AVG_AMOUNT = {}
+
+    const configAvgAmountList = await this.configAvgAmountRepository.find()
+
+    configAvgAmountList.forEach((configAvgAmount) => {
+      const cacheKey = getCacheKey(configAvgAmount.region, configAvgAmount.version, configAvgAmount.hospitalLevel, configAvgAmount.dipCode, configAvgAmount.insuranceType)
+
+      CACHE_DIP_CONFIG_AVG_AMOUNT[cacheKey] = configAvgAmount
+    })
+
+    await this.cacheManager.set('CACHE_DIP_CONFIG_AVG_AMOUNT', CACHE_DIP_CONFIG_AVG_AMOUNT, 0)
   }
 
   private async cacheICD9() {

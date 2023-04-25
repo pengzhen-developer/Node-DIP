@@ -3,11 +3,23 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { InsertResult, Repository } from 'typeorm'
 import { Cache } from 'cache-manager'
 import { getCacheKey } from 'src/utils'
-import { TDipContents, TDipConfigExcludeIcd9, TDipConfigSettle, TImpIcd9, TImpIcd10, TDebug, TDipInfo, TDipContentsSupplement, EnumDipUnMatchCode } from 'src/types/dip.type'
+import {
+  TDipContents,
+  TDipConfigExcludeIcd9,
+  TDipConfigSettle,
+  TImpIcd9,
+  TImpIcd10,
+  TDebug,
+  TDipInfo,
+  TDipContentsSupplement,
+  EnumDipUnMatchCode,
+  TDipConfigAvgAmount
+} from 'src/types/dip.type'
 import { DipTodo } from 'src/entities/DipTodo'
 import { DipTodoResult } from 'src/entities/DipTodoResult'
 import { RegionStrategyService } from './utils/region.strategy.service'
 import { DipConfigSettle } from 'src/entities/DipConfigSettle'
+import { DipConfigAvgAmount } from 'src/entities/DipConfigAvgAmount'
 
 @Injectable()
 export class DipService implements OnApplicationBootstrap {
@@ -17,6 +29,7 @@ export class DipService implements OnApplicationBootstrap {
   CACHE_COMPREHENSIVE_GROUP_LIST: TDipContents
   CACHE_DIP_CONFIG_EXCLUDE_ICD9: TDipConfigExcludeIcd9
   CACHE_DIP_CONFIG_SETTLE: TDipConfigSettle
+  CACHE_DIP_CONFIG_AVG_AMOUNT: TDipConfigAvgAmount
   CACHE_IMP_ICD9: TImpIcd9
   CACHE_IMP_ICD10: TImpIcd10
   CACHE_CONTENTS_ICD9_YB_2_0: TImpIcd9
@@ -44,6 +57,7 @@ export class DipService implements OnApplicationBootstrap {
     this.CACHE_IMP_ICD10 = await this.cacheManager.get<TImpIcd10>('CACHE_IMP_ICD10')
     this.CACHE_DIP_CONFIG_EXCLUDE_ICD9 = await this.cacheManager.get<TDipConfigExcludeIcd9>('CACHE_DIP_CONFIG_EXCLUDE_ICD9')
     this.CACHE_DIP_CONFIG_SETTLE = await this.cacheManager.get<TDipConfigSettle>('CACHE_DIP_CONFIG_SETTLE')
+    this.CACHE_DIP_CONFIG_AVG_AMOUNT = await this.cacheManager.get<TDipConfigAvgAmount>('CACHE_DIP_CONFIG_AVG_AMOUNT')
     this.CACHE_CONTENTS_ICD9_YB_2_0 = await this.cacheManager.get<TImpIcd9>('CACHE_CONTENTS_ICD9_YB_2.0')
     this.CACHE_CONTENTS_ICD9_GL_3_0 = await this.cacheManager.get<TImpIcd9>('CACHE_CONTENTS_ICD9_GL_3.0')
   }
@@ -253,6 +267,13 @@ export class DipService implements OnApplicationBootstrap {
    */
   public getConfigSettle(region: string, version: string, hosCode: string): DipConfigSettle {
     return this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(region, version, hosCode)]
+  }
+
+  /**
+   * 获取平均费用配置信息
+   */
+  public getConfigAvgMount(region: string, version: string, hospitalLevel: number, dipCode: string, insuranceType: string): DipConfigAvgAmount {
+    return this.CACHE_DIP_CONFIG_AVG_AMOUNT[getCacheKey(region, version, hospitalLevel, dipCode, insuranceType)]
   }
 
   /**
