@@ -91,6 +91,9 @@ export class DipTodoResult {
   @Column('varchar', { name: 'dip_name', nullable: true, comment: '福鑫分组名称', length: 1000 })
   dipName?: string | null
 
+  @Column('decimal', { name: 'dip_score', nullable: true, comment: '福鑫分组分值', precision: 10, scale: 4 })
+  dipScore: number | null
+
   @Column('varchar', { name: 'dip_supplement_type', nullable: true, comment: '福鑫辅助目录类型', length: 10 })
   dipSupplementType?: string | null
 
