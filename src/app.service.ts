@@ -42,16 +42,6 @@ export class AppService implements OnModuleInit {
     await this.cacheDipConfigExcludeCcMcc()
   }
 
-  async cache() {
-    // 获取缓存
-    await this.cacheDipContents()
-    await this.cacheICD9()
-    await this.cacheICD10()
-    await this.cacheDipConfigExcludeIcd9()
-    await this.cacheDipConfigSettle()
-    await this.cacheDipConfigAvgAmount()
-  }
-
   private async cacheDipContents() {
     const CACHE_CORE_GROUP_LIST = {}
     const CACHE_BASIC_GROUP_LIST = {}

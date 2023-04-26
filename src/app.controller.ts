@@ -9,7 +9,7 @@ export class AppController {
   @ApiOperation({ tags: ['缓存'], description: '重置缓存' })
   @Get('/re-cache')
   async restore() {
-    await this.appService.cache()
+    await this.appService.onModuleInit()
     return true
   }
 }
