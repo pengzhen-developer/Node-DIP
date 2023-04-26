@@ -44,28 +44,22 @@ export class Region_420900_2022 extends RegionBaseService {
     )
     /** 病种分值 */
     const dipScore = dipInfo.dipSupplementName ? dipInfo.dipSupplementScore * dipInfo.dipSupplementFactor : dipInfo.dipScore
-    /** 病种分值单价（模拟均费） */
-    const dipMockScorePrice = configSettle.factorScorePrice
-    /** 均费调整系数 */
-    const dipFactorAvgAmount = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup : configSettle.factorAvgAmount
+    /** 结算分值单价（根据医疗机构级别） */
+    const dipFactorAvgAmount = rawParams.insuranceType === EnumInsuranceType.职工 ? configSettle.factorEmployeeAvgAmount : configSettle.factorResidentAvgAmount
     /** 结算分值单价 */
     const dipScorePrice = rawParams.insuranceType === EnumInsuranceType.职工 ? configSettle.factorEmployeePrice : configSettle.factorResidentPrice
     /** 结算调整系数 */
     const dipFactorSettle = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup : configSettle.factorHospital
 
-    /** 计算 DIP 均费 */
+    /** 模拟 DIP 均费 */
     const getDipAvgAmount = () => {
-      // 存在辅助目录均费，使用: 辅助目录均费 * 均费调整系数
-      if (dipInfo.dipSupplementAvgAmount) {
-        return (configAvgAmount?.dipAvgAmount ?? dipInfo.dipSupplementAvgAmount) * dipFactorAvgAmount
+      // 存在辅助目录，使用: 辅助目录分值 * 职工/居民系数
+      if (dipInfo.dipSupplementScore) {
+        return (configAvgAmount?.dipAvgAmount ?? dipInfo.dipSupplementScore) * dipInfo.dipSupplementFactor * dipFactorAvgAmount
       }
-      // 存在目录均费，使用: 目录均费 * 医疗机构系数
-      else if (dipInfo.dipAvgAmount) {
-        return (configAvgAmount?.dipAvgAmount ?? dipInfo.dipAvgAmount) * dipFactorAvgAmount
-      }
-      // 均不存在，使用: 病种分值 * 分值单价  * 调整系数
+      // 存在基准目录，使用: 基准目录分值 * 职工/居民系数
       else {
-        return dipScore * (dipMockScorePrice ?? dipScorePrice) * dipFactorAvgAmount
+        return (configAvgAmount?.dipAvgAmount ?? dipInfo.dipScore) * dipFactorAvgAmount
       }
     }
     /** 计算 DIP 结算分值 */

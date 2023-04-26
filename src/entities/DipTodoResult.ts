@@ -51,11 +51,11 @@ export class DipTodoResult {
   insuranceType?: string | null
 
   @ApiProperty()
-  @Column('varchar', { name: 'diag_code', nullable: true, comment: '疾病代码', length: 30 })
+  @Column('varchar', { name: 'diag_code', nullable: true, comment: '疾病代码', length: 500 })
   diagCode?: string | string[] | null
 
   @ApiProperty()
-  @Column('varchar', { name: 'oprn_oprt_code', nullable: true, comment: '手术及操作编码（+连接）', length: 255 })
+  @Column('varchar', { name: 'oprn_oprt_code', nullable: true, comment: '手术及操作编码', length: 500 })
   oprnOprtCode?: string | string[] | null
 
   @Column('varchar', { name: 'yb_dip_type', nullable: true, comment: '医保分组类型', length: 2 })

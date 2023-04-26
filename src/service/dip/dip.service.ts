@@ -13,7 +13,9 @@ import {
   TDipInfo,
   TDipContentsSupplement,
   EnumDipUnMatchCode,
-  TDipConfigAvgAmount
+  TDipConfigAvgAmount,
+  TDipConfigExcludeCcMcc,
+  TDipConfigCcMcc
 } from 'src/types/dip.type'
 import { DipTodo } from 'src/entities/DipTodo'
 import { DipTodoResult } from 'src/entities/DipTodoResult'
@@ -30,6 +32,8 @@ export class DipService implements OnApplicationBootstrap {
   CACHE_DIP_CONFIG_EXCLUDE_ICD9: TDipConfigExcludeIcd9
   CACHE_DIP_CONFIG_SETTLE: TDipConfigSettle
   CACHE_DIP_CONFIG_AVG_AMOUNT: TDipConfigAvgAmount
+  CACHE_DIP_CONFIG_CC_MCC: TDipConfigCcMcc
+  CACHE_DIP_CONFIG_EXCLUDE_CC_MCC: TDipConfigExcludeCcMcc
   CACHE_IMP_ICD9: TImpIcd9
   CACHE_IMP_ICD10: TImpIcd10
   CACHE_CONTENTS_ICD9_YB_2_0: TImpIcd9
@@ -58,6 +62,8 @@ export class DipService implements OnApplicationBootstrap {
     this.CACHE_DIP_CONFIG_EXCLUDE_ICD9 = await this.cacheManager.get<TDipConfigExcludeIcd9>('CACHE_DIP_CONFIG_EXCLUDE_ICD9')
     this.CACHE_DIP_CONFIG_SETTLE = await this.cacheManager.get<TDipConfigSettle>('CACHE_DIP_CONFIG_SETTLE')
     this.CACHE_DIP_CONFIG_AVG_AMOUNT = await this.cacheManager.get<TDipConfigAvgAmount>('CACHE_DIP_CONFIG_AVG_AMOUNT')
+    this.CACHE_DIP_CONFIG_CC_MCC = await this.cacheManager.get<TDipConfigCcMcc>('CACHE_DIP_CONFIG_CC_MCC')
+    this.CACHE_DIP_CONFIG_EXCLUDE_CC_MCC = await this.cacheManager.get<TDipConfigExcludeCcMcc>('CACHE_DIP_CONFIG_EXCLUDE_CC_MCC')
     this.CACHE_CONTENTS_ICD9_YB_2_0 = await this.cacheManager.get<TImpIcd9>('CACHE_CONTENTS_ICD9_YB_2.0')
     this.CACHE_CONTENTS_ICD9_GL_3_0 = await this.cacheManager.get<TImpIcd9>('CACHE_CONTENTS_ICD9_GL_3.0')
   }

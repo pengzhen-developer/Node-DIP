@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common'
 import { DipTodo } from 'src/entities/DipTodo'
-import { EnumDipType, EnumOprnOprtType, TDipContents, TDipInfo, IRegionStrategy, EnumInsuranceType, EnumDeviation, TDipContentsSupplement } from 'src/types/dip.type'
+import { EnumDipType, EnumOprnOprtType, TDipContents, TDipInfo, IRegionStrategy, EnumInsuranceType, EnumDeviation, TDipContentsSupplement, EnumCcMcc } from 'src/types/dip.type'
 import { getAge, getCacheKey } from 'src/utils'
 import { DipService } from './../dip.service'
 
@@ -47,28 +47,23 @@ export class RegionBaseService implements IRegionStrategy {
     )
     /** 病种分值 */
     const dipScore = dipInfo.dipSupplementName ? dipInfo.dipSupplementScore * dipInfo.dipSupplementFactor : dipInfo.dipScore
-    /** 病种分值单价（模拟均费） */
-    const dipMockScorePrice = configSettle.factorScorePrice
-    /** 均费调整系数 */
-    const dipFactorAvgAmount = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup : configSettle.factorAvgAmount
+    /** 结算分值单价（根据医疗机构级别） */
+    const dipFactorAvgAmount = rawParams.insuranceType === EnumInsuranceType.职工 ? configSettle.factorEmployeeAvgAmount : configSettle.factorResidentAvgAmount
+
     /** 结算分值单价 */
     const dipScorePrice = rawParams.insuranceType === EnumInsuranceType.职工 ? configSettle.factorEmployeePrice : configSettle.factorResidentPrice
     /** 结算调整系数 */
     const dipFactorSettle = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup : configSettle.factorHospital
 
-    /** 计算 DIP 均费 */
+    /** 模拟 DIP 均费 */
     const getDipAvgAmount = () => {
-      // 存在辅助目录均费，使用: 辅助目录均费 * 均费调整系数
-      if (dipInfo.dipSupplementAvgAmount) {
-        return (configAvgAmount?.dipAvgAmount ?? dipInfo.dipSupplementAvgAmount) * dipFactorAvgAmount
+      // 存在辅助目录，使用: 辅助目录分值 * 职工/居民系数
+      if (dipInfo.dipSupplementScore) {
+        return (configAvgAmount?.dipAvgAmount ?? dipInfo.dipSupplementScore) * dipInfo.dipSupplementFactor * dipFactorAvgAmount
       }
-      // 存在目录均费，使用: 目录均费 * 医疗机构系数
-      else if (dipInfo.dipAvgAmount) {
-        return (configAvgAmount?.dipAvgAmount ?? dipInfo.dipAvgAmount) * dipFactorAvgAmount
-      }
-      // 均不存在，使用: 病种分值 * 分值单价  * 调整系数
+      // 存在基准目录，使用: 基准目录分值 * 职工/居民系数
       else {
-        return dipScore * (dipMockScorePrice ?? dipScorePrice) * dipFactorAvgAmount
+        return (configAvgAmount?.dipAvgAmount ?? dipInfo.dipScore) * dipFactorAvgAmount
       }
     }
     /** 计算 DIP 结算分值 */
@@ -281,10 +276,38 @@ export class RegionBaseService implements IRegionStrategy {
       const dipContentsSupplement = dipContentsSupplementList[cacheKey]
 
       if (dipContentsSupplement?.length > 0) {
-        // 年龄辅助目录 - 表达式关键要素
+        // 年龄级别 - 表达式关键要素
         const { years: $ExpressionAgeYears, days: $ExpressionAgeDays } = getAge(new Date(rawParams.birthDate), new Date(rawParams.inHospitalDate))
-        // 肿瘤:肺结核耐药 - 表达式关键要素
+        // 肿瘤级别 - 表达式关键要素
         const $ExpressionDiagCode = formatParams.diagCode
+        // 疾病级别 - 表达式关键要素
+        const $ExpressionCcMcc = this.dipService.CACHE_DIP_CONFIG_CC_MCC
+        const $ExpressionExcludeCcMcc = this.dipService.CACHE_DIP_CONFIG_EXCLUDE_CC_MCC
+
+        const $ExpressionIsCcFunc = () => {
+          const $ExpressionMajorDiagCode = formatParams.diagCode.slice(0, 1) as string[]
+          const $ExpressionMinorDiagCode = formatParams.diagCode.slice(1) as string[]
+
+          return $ExpressionMinorDiagCode.some((diagCode) => {
+            const ccMcc = $ExpressionCcMcc[getCacheKey(rawParams.region, rawParams.version, diagCode)]
+            if (ccMcc && ccMcc.type === EnumCcMcc.cc) {
+              return $ExpressionExcludeCcMcc[getCacheKey(rawParams.region, rawParams.version, ccMcc.exclude)]?.every((item) => item.diagCode !== $ExpressionMajorDiagCode[0])
+            }
+            return false
+          })
+        }
+        const $ExpressionIsMccFunc = () => {
+          const $ExpressionMajorDiagCode = formatParams.diagCode.slice(0, 1) as string[]
+          const $ExpressionMinorDiagCode = formatParams.diagCode.slice(1) as string[]
+
+          return $ExpressionMinorDiagCode.some((diagCode) => {
+            const ccMcc = $ExpressionCcMcc[getCacheKey(rawParams.region, rawParams.version, diagCode)]
+            if (ccMcc && ccMcc.type === EnumCcMcc.mcc) {
+              return $ExpressionExcludeCcMcc[getCacheKey(rawParams.region, rawParams.version, ccMcc.exclude)]?.every((item) => item.diagCode !== $ExpressionMajorDiagCode[0])
+            }
+            return false
+          })
+        }
 
         // 执行辅助目录命中表达式
         const dipContentsSupplementList = dipContentsSupplement.filter((item) => eval(item.dipSupplementExpression))

@@ -48,7 +48,7 @@ export class DipTodo {
 
   /** 病例诊断 */
   @ApiProperty()
-  @Column('varchar', { name: 'diag_code', nullable: true, comment: '疾病代码', length: 30 })
+  @Column('varchar', { name: 'diag_code', nullable: true, comment: '疾病代码', length: 500 })
   diagCode?: string | string[] | null
 
   /** 病例手术及操作 */

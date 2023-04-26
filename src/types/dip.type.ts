@@ -6,6 +6,8 @@ import { ImpIcd10 } from 'src/entities/ImpIcd10'
 import { ImpIcd9 } from 'src/entities/ImpIcd9'
 import { DipContentsSupplement } from 'src/entities/DipContentsSupplement'
 import { DipConfigAvgAmount } from 'src/entities/DipConfigAvgAmount'
+import { DipConfigCcMcc } from 'src/entities/DipConfigCcMcc'
+import { DipConfigExcludeCcMcc } from 'src/entities/DipConfigExcludeCcMcc'
 
 export interface IRegionStrategy {
   /** 分组 */
@@ -25,6 +27,14 @@ export type TDipConfigSettle = {
 
 export type TDipConfigAvgAmount = {
   [key: string]: DipConfigAvgAmount
+}
+
+export type TDipConfigCcMcc = {
+  [key: string]: DipConfigCcMcc
+}
+
+export type TDipConfigExcludeCcMcc = {
+  [key: string]: DipConfigExcludeCcMcc[]
 }
 
 export type TImpIcd9 = {
@@ -136,6 +146,14 @@ export enum EnumOprnOprtLevel {
 export enum EnumInsuranceType {
   职工 = '职工',
   居民 = '居民'
+}
+
+/**
+ * cc / mcc
+ */
+export enum EnumCcMcc {
+  cc = 'cc',
+  mcc = 'mcc'
 }
 
 /**

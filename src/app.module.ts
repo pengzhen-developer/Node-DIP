@@ -13,6 +13,8 @@ import { CachingModule } from './service/caching/caching.module'
 import { DipModule } from './service/dip/dip.module'
 import { DipTodoResult } from './entities/DipTodoResult'
 import { DipConfigAvgAmount } from './entities/DipConfigAvgAmount'
+import { DipConfigCcMcc } from './entities/DipConfigCcMcc'
+import { DipConfigExcludeCcMcc } from './entities/DipConfigExcludeCcMcc'
 
 @Module({
   controllers: [AppController],
@@ -29,7 +31,19 @@ import { DipConfigAvgAmount } from './entities/DipConfigAvgAmount'
       logging: false,
       autoLoadEntities: true
     }),
-    TypeOrmModule.forFeature([DipContents, DipContentsSupplement, DipConfigExcludeIcd9, DipConfigSettle, DipConfigAvgAmount, DipTodo, DipTodoResult, ImpIcd9, ImpIcd10]),
+    TypeOrmModule.forFeature([
+      DipContents,
+      DipContentsSupplement,
+      DipConfigCcMcc,
+      DipConfigExcludeCcMcc,
+      DipConfigExcludeIcd9,
+      DipConfigSettle,
+      DipConfigAvgAmount,
+      DipTodo,
+      DipTodoResult,
+      ImpIcd9,
+      ImpIcd10
+    ]),
     CacheModule.register({ isGlobal: true }),
     CachingModule,
     DipModule

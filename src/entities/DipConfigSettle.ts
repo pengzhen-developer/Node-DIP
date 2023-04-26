@@ -20,23 +20,23 @@ export class DipConfigSettle {
   @Column('varchar', { name: 'hospital_level', nullable: true, comment: '医疗机构结算等级', length: 30 })
   hospitalLevel: number | null
 
-  /** 医疗机构调整系数 */
+  /** 均费调整系数-职工 */
+  @Column('decimal', { name: 'factor_employee_avg_amount', nullable: true, comment: '均费调整系数-职工', precision: 10, scale: 4 })
+  factorEmployeeAvgAmount: number | null
+
+  /** 均费调整系数-居民 */
+  @Column('decimal', { name: 'factor_resident_avg_amount', nullable: true, comment: '均费调整系数-居民', precision: 10, scale: 4 })
+  factorResidentAvgAmount: number | null
+
+  /** 结算调整系数-医疗机构 */
   @Column('decimal', { name: 'factor_hospital', nullable: true, comment: '调整系数-医疗机构', precision: 10, scale: 4 })
   factorHospital: number | null
 
-  /** 调整系数-均次费用 */
-  @Column('decimal', { name: 'factor_avg_amount', nullable: true, comment: '调整系数-均次费用', precision: 10, scale: 4 })
-  factorAvgAmount: number | null
-
-  /** 调整系数-模拟每分值单价 */
-  @Column('decimal', { name: 'factor_score_price', nullable: true, comment: '调整系数-模拟每分值单价', precision: 10, scale: 4 })
-  factorScorePrice: number | null
-
-  /** 调整系数-职工（职工分值单价） */
-  @Column('decimal', { name: 'factor_employee_price', nullable: true, comment: '调整系数-职工（职工分值单价）', precision: 10, scale: 4 })
+  /** 结算调整系数-职工（职工分值单价） */
+  @Column('decimal', { name: 'factor_employee_price', nullable: true, comment: '结算调整系数-职工（职工分值单价）', precision: 10, scale: 4 })
   factorEmployeePrice: number | null
 
-  /** 调整系数-居民（居民分值单价） */
-  @Column('decimal', { name: 'factor_resident_price', nullable: true, comment: '调整系数-居民（居民分值单价）', precision: 10, scale: 4 })
+  /** 结算调整系数-居民（居民分值单价） */
+  @Column('decimal', { name: 'factor_resident_price', nullable: true, comment: '结算调整系数-居民（居民分值单价）', precision: 10, scale: 4 })
   factorResidentPrice: number | null
 }

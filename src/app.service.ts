@@ -11,6 +11,8 @@ import { DipConfigAvgAmount } from './entities/DipConfigAvgAmount'
 import { ImpIcd9 } from './entities/ImpIcd9'
 import { ImpIcd10 } from './entities/ImpIcd10'
 import { EnumDipType } from './types/dip.type'
+import { DipConfigCcMcc } from './entities/DipConfigCcMcc'
+import { DipConfigExcludeCcMcc } from './entities/DipConfigExcludeCcMcc'
 
 @Injectable()
 export class AppService implements OnModuleInit {
@@ -20,6 +22,8 @@ export class AppService implements OnModuleInit {
     @InjectRepository(DipConfigExcludeIcd9) private configExcludeICD9Repository: Repository<DipConfigExcludeIcd9>,
     @InjectRepository(DipConfigSettle) private configFactorRepository: Repository<DipConfigSettle>,
     @InjectRepository(DipConfigAvgAmount) private configAvgAmountRepository: Repository<DipConfigAvgAmount>,
+    @InjectRepository(DipConfigCcMcc) private configCcMccRepository: Repository<DipConfigCcMcc>,
+    @InjectRepository(DipConfigExcludeCcMcc) private configExcludeCcMccRepository: Repository<DipConfigExcludeCcMcc>,
     @InjectRepository(ImpIcd9) private impICD9Repository: Repository<ImpIcd9>,
     @InjectRepository(ImpIcd10) private impICD10Repository: Repository<ImpIcd10>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache
@@ -34,6 +38,8 @@ export class AppService implements OnModuleInit {
     await this.cacheDipConfigExcludeIcd9()
     await this.cacheDipConfigSettle()
     await this.cacheDipConfigAvgAmount()
+    await this.cacheDipConfigCcMcc()
+    await this.cacheDipConfigExcludeCcMcc()
   }
 
   async cache() {
@@ -194,5 +200,37 @@ export class AppService implements OnModuleInit {
     for (const key in CACHE) {
       await this.cacheManager.set(key, CACHE[key], 0)
     }
+  }
+
+  private async cacheDipConfigCcMcc() {
+    const CACHE_DIP_CONFIG_CC_MCC = {}
+
+    const configCcMccList = await this.configCcMccRepository.find()
+
+    configCcMccList.forEach((configCcMcc) => {
+      const cacheKey = getCacheKey(configCcMcc.region, configCcMcc.version, configCcMcc.diagCode)
+
+      CACHE_DIP_CONFIG_CC_MCC[cacheKey] = configCcMcc
+    })
+
+    await this.cacheManager.set('CACHE_DIP_CONFIG_CC_MCC', CACHE_DIP_CONFIG_CC_MCC, 0)
+  }
+
+  private async cacheDipConfigExcludeCcMcc() {
+    const CACHE_DIP_CONFIG_EXCLUDE_CC_MCC = {}
+
+    const configExcludeCcMccList = await this.configExcludeCcMccRepository.find()
+
+    configExcludeCcMccList.forEach((configExcludeCcMcc) => {
+      const cacheKey = getCacheKey(configExcludeCcMcc.region, configExcludeCcMcc.version, configExcludeCcMcc.exclude)
+
+      if (!CACHE_DIP_CONFIG_EXCLUDE_CC_MCC[cacheKey]) {
+        CACHE_DIP_CONFIG_EXCLUDE_CC_MCC[cacheKey] = []
+      }
+
+      CACHE_DIP_CONFIG_EXCLUDE_CC_MCC[cacheKey].push(configExcludeCcMcc)
+    })
+
+    await this.cacheManager.set('CACHE_DIP_CONFIG_EXCLUDE_CC_MCC', CACHE_DIP_CONFIG_EXCLUDE_CC_MCC, 0)
   }
 }
