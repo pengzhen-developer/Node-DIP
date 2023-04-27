@@ -45,23 +45,29 @@ export class RegionBaseService implements IRegionStrategy {
       dipInfo.dipSupplementName,
       rawParams.insuranceType
     )
-    /** 病种分值 */
+    /** 基准分值 */
     const dipScore = dipInfo.dipSupplementName ? dipInfo.dipSupplementScore * dipInfo.dipSupplementFactor : dipInfo.dipScore
-    /** 结算分值单价（根据医疗机构级别） */
-    const dipFactorAvgAmount = rawParams.insuranceType === EnumInsuranceType.职工 ? configSettle.factorEmployeeAvgAmount : configSettle.factorResidentAvgAmount
-
-    /** 结算分值单价 */
-    const dipScorePrice = rawParams.insuranceType === EnumInsuranceType.职工 ? configSettle.factorEmployeePrice : configSettle.factorResidentPrice
-    /** 结算调整系数 */
-    const dipFactorSettle = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup : configSettle.factorHospital
+    /** 均费调整系数（基层 & 医保类型） */
+    const dipFactorAvgAmount =
+      dipInfo.dipType === EnumDipType.基层
+        ? rawParams.insuranceType === EnumInsuranceType.职工
+          ? configSettle.factorBasicEmployeeAvgAmount
+          : configSettle.factorBasicResidentAvgAmount
+        : rawParams.insuranceType === EnumInsuranceType.职工
+        ? configSettle.factorEmployeeAvgAmount
+        : configSettle.factorResidentAvgAmount
+    /** 结算调整系数（医保类型） */
+    const dipFactorScorePrice = rawParams.insuranceType === EnumInsuranceType.职工 ? configSettle.factorEmployeePrice : configSettle.factorResidentPrice
+    /** 结算调整系数（医疗机构） */
+    const dipFactorHospital = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup : configSettle.factorHospital
 
     /** 模拟 DIP 均费 */
     const getDipAvgAmount = () => {
-      // 存在辅助目录，使用: 辅助目录分值 * 职工/居民系数
+      // 存在辅助目录，使用: 辅助目录分值 * 均费调整系数（基层 & 医保类型）
       if (dipInfo.dipSupplementScore) {
         return (configAvgAmount?.dipAvgAmount ?? dipInfo.dipSupplementScore) * dipInfo.dipSupplementFactor * dipFactorAvgAmount
       }
-      // 存在基准目录，使用: 基准目录分值 * 职工/居民系数
+      // 存在基准目录，使用: 基准目录分值 * 均费调整系数（基层 & 医保类型）
       else {
         return (configAvgAmount?.dipAvgAmount ?? dipInfo.dipScore) * dipFactorAvgAmount
       }
@@ -70,6 +76,10 @@ export class RegionBaseService implements IRegionStrategy {
     const getDipSettleScore = () => {
       const sumAmount = rawParams.sumAmount ?? 0
       const dipAvgAmount = getDipAvgAmount()
+
+      if (dipAvgAmount === 0) {
+        return 0
+      }
 
       // 偏差类型 - 高倍率
       // 费用在 200%以上的病例病种分值 =〔(该病例医疗总费用 ÷ 上一年度同级别定点医疗机构该病种次均医疗总费用 - 2）+ 1〕 × 该病种分值
@@ -94,11 +104,11 @@ export class RegionBaseService implements IRegionStrategy {
     dipInfo.dipSettleScore = getDipSettleScore()
     dipInfo.dipSettleScorePriceEmployee = configSettle.factorEmployeePrice
     dipInfo.dipSettleScorePriceResident = configSettle.factorResidentPrice
-    dipInfo.dipSettleScorePrice = dipScorePrice
+    dipInfo.dipSettleScorePrice = dipFactorScorePrice
     dipInfo.dipSettleFactorHospital = configSettle.factorHospital
     dipInfo.dipSettleFactorBasicGroup = dipInfo.dipFactorBasicGroup
-    dipInfo.dipSettleFactor = dipFactorSettle
-    dipInfo.dipSettleAmount = dipInfo.dipSettleScore * dipInfo.dipSettleScorePrice * dipFactorSettle ?? 0
+    dipInfo.dipSettleFactor = dipFactorHospital
+    dipInfo.dipSettleAmount = dipInfo.dipScore === 0 ? rawParams.sumAmount : dipInfo.dipSettleScore * dipInfo.dipSettleScorePrice * dipInfo.dipSettleFactor ?? 0
 
     return dipInfo
   }

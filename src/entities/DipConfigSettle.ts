@@ -28,6 +28,14 @@ export class DipConfigSettle {
   @Column('decimal', { name: 'factor_resident_avg_amount', nullable: true, comment: '均费调整系数-居民', precision: 10, scale: 4 })
   factorResidentAvgAmount: number | null
 
+  /** 均费调整系数-职工（基层病种） */
+  @Column('decimal', { name: 'factor_basic_employee_avg_amount', nullable: true, comment: '均费调整系数-职工（基层病种）', precision: 10, scale: 4 })
+  factorBasicEmployeeAvgAmount: number | null
+
+  /** 均费调整系数-居民（基层病种） */
+  @Column('decimal', { name: 'factor_basic_resident_avg_amount', nullable: true, comment: '均费调整系数-居民（基层病种）', precision: 10, scale: 4 })
+  factorBasicResidentAvgAmount: number | null
+
   /** 结算调整系数-医疗机构 */
   @Column('decimal', { name: 'factor_hospital', nullable: true, comment: '调整系数-医疗机构', precision: 10, scale: 4 })
   factorHospital: number | null
