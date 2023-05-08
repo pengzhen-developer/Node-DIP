@@ -78,6 +78,7 @@ export class RegionBaseService implements IRegionStrategy {
       const dipAvgAmount = getDipAvgAmount()
 
       if (dipAvgAmount === 0) {
+        dipInfo.dipSettleDeviation = EnumDeviation.正常倍率
         return 0
       }
 
@@ -108,7 +109,7 @@ export class RegionBaseService implements IRegionStrategy {
     dipInfo.dipSettleFactorHospital = configSettle.factorHospital
     dipInfo.dipSettleFactorBasicGroup = dipInfo.dipFactorBasicGroup
     dipInfo.dipSettleFactor = dipFactorHospital
-    dipInfo.dipSettleAmount = dipInfo.dipScore === 0 ? rawParams.sumAmount : dipInfo.dipSettleScore * dipInfo.dipSettleScorePrice * dipInfo.dipSettleFactor ?? 0
+    dipInfo.dipSettleAmount = parseFloat(dipInfo.dipScore as any) === 0 ? rawParams.sumAmount : dipInfo.dipSettleScore * dipInfo.dipSettleScorePrice * dipInfo.dipSettleFactor ?? 0
 
     return dipInfo
   }
