@@ -87,7 +87,7 @@ export type TDipMatch = {
   dipSettleFactorHospital?: number
   /** 结算基层病种调整系数 */
   dipSettleFactorBasicGroup?: number
-  /** 结算调整系数 */
+  /** 结算分值调整系数 */
   dipSettleFactor?: number
   /** 结算费用 */
   dipSettleAmount?: number

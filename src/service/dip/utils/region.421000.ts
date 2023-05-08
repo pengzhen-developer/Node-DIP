@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common'
 import { DipTodo } from 'src/entities/DipTodo'
-import { TDipInfo, TDipContents } from 'src/types/dip.type'
+import { TDipInfo, TDipContents, EnumDipType, EnumOprnOprtType } from 'src/types/dip.type'
 import { getCacheKey } from 'src/utils'
 import { DipService } from '../dip.service'
 import { RegionBaseService } from './region.base.service'
@@ -9,6 +9,24 @@ import { RegionBaseService } from './region.base.service'
 export class Region_421000 extends RegionBaseService {
   constructor(@Inject(forwardRef(() => DipService)) public readonly dipService: DipService) {
     super(dipService)
+  }
+
+  toDip(rawParams: DipTodo, formatParams: DipTodo): TDipInfo {
+    let decideGroups: TDipInfo[] = []
+    // 入任意组
+    let coreGroups = this.intoCoreGroups(rawParams, formatParams, this.dipService.CACHE_CORE_GROUP_LIST)
+    let basicGroups = this.intoBasicGroups(rawParams, formatParams, this.dipService.CACHE_BASIC_GROUP_LIST)
+    let comprehensiveGroup = this.intoComprehensiveGroup(rawParams, formatParams, this.dipService.CACHE_COMPREHENSIVE_GROUP_LIST)
+    // 经辅助目录调整
+    coreGroups = this.intoSupplementGroup(rawParams, formatParams, this.dipService.CACHE_DIP_CONTENTS_SUPPLEMENT_LIST, coreGroups)
+    basicGroups = this.intoSupplementGroup(rawParams, formatParams, this.dipService.CACHE_DIP_CONTENTS_SUPPLEMENT_LIST, basicGroups)
+    comprehensiveGroup = this.intoSupplementGroup(rawParams, formatParams, this.dipService.CACHE_DIP_CONTENTS_SUPPLEMENT_LIST, comprehensiveGroup)
+    // 选定唯一组
+    decideGroups = this.chooseCoreGroupByMatchQuantity(rawParams, formatParams, [...coreGroups, ...basicGroups])
+    decideGroups = this.chooseCoreGroupByAbsoluteFee(rawParams, formatParams, [...decideGroups])
+    decideGroups = this.chooseUniqueGroupByDipType(rawParams, formatParams, [...decideGroups, ...basicGroups, ...comprehensiveGroup])
+
+    return decideGroups[0]
   }
 
   intoComprehensiveGroup(rawParams: DipTodo, formatParams: DipTodo, dipContentList: TDipContents): TDipInfo[] {
@@ -63,6 +81,10 @@ export class Region_421000 extends RegionBaseService {
           const dipInfo = dipContentList[key].find((group) => group.oprnOprtType === operationLevel)
           if (dipInfo) {
             const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
+            // 修改 dipCode
+            if (dipInfoResult.diagCode.length > 1) {
+              dipInfoResult.dipCode = rawParams.diagCode.toString().substring(0, 3) + dipInfoResult.dipCode.substring(7)
+            }
             dipInfoResult.oprnOprtCodeMatch = []
             dipInfoResult.oprnOprtCodeUnMatch = formatParams.oprnOprtCode as string[]
 
@@ -94,6 +116,34 @@ export class Region_421000 extends RegionBaseService {
     return dipInfoList
   }
 
+  chooseCoreGroupByMatchQuantity(rawParams: DipTodo, formatParams: DipTodo, dipInfoList: TDipInfo[]): TDipInfo[] {
+    if (dipInfoList.length === 0) {
+      return []
+    }
+
+    // 荆州：完全匹配关系 > 其他
+    // 荆州：手术操作完全一致（不存在多余手术操作）
+    if (dipInfoList.some((item) => item.oprnOprtCodeUnMatch.length === 0)) {
+      const chooseGroupByMatchQuantity = dipInfoList.filter((item) => item.oprnOprtCodeUnMatch.length === 0)
+
+      this.dipService.logger({
+        title: '根据手术操作匹配数量选择组',
+        description: chooseGroupByMatchQuantity
+      })
+
+      return chooseGroupByMatchQuantity
+    }
+    // 荆州：手术操作不完全一致（存在更多手术操作）
+    else {
+      this.dipService.logger({
+        title: '根据手术操作匹配数量选择组',
+        description: dipInfoList
+      })
+
+      return dipInfoList
+    }
+  }
+
   chooseCoreGroupByAbsoluteFee(rawParams: DipTodo, formatParams: DipTodo, dipInfoList: TDipInfo[]): TDipInfo[] {
     if (dipInfoList.length === 0) {
       return []
@@ -113,5 +163,80 @@ export class Region_421000 extends RegionBaseService {
     })
 
     return chooseGroupByAbsoluteFee
+  }
+
+  chooseUniqueGroupByDipType(rawParams: DipTodo, formatParams: DipTodo, dipInfoList: TDipInfo[]): TDipInfo[] {
+    let chooseGroupByType: TDipInfo[] = []
+
+    const operationLevel = super.getOprnOprtType(formatParams.oprnOprtCode)
+
+    // 优先匹配和病例的操作最大类型匹配的核心 -> 综合
+    // 其次匹配低于病例的操作最大类型匹配的核心 -> 综合
+
+    const chooseList = [
+      {
+        tooltip: '核心: 相关手术',
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.核心 && dipInfo.oprnOprtType === EnumOprnOprtType.相关手术)
+      },
+      {
+        tooltip: '基层: 相关手术',
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.基层 && dipInfo.oprnOprtType === EnumOprnOprtType.相关手术)
+      },
+      {
+        tooltip: '核心: 治疗性操作',
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.核心 && dipInfo.oprnOprtType === EnumOprnOprtType.治疗性操作)
+      },
+      {
+        tooltip: '基层: 治疗性操作',
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.基层 && dipInfo.oprnOprtType === EnumOprnOprtType.治疗性操作)
+      },
+      {
+        tooltip: '核心: 诊断性操作',
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.核心 && dipInfo.oprnOprtType === EnumOprnOprtType.诊断性操作)
+      },
+      {
+        tooltip: '基层: 诊断性操作',
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.基层 && dipInfo.oprnOprtType === EnumOprnOprtType.诊断性操作)
+      },
+      {
+        tooltip: '综合: 诊断性操作',
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.综合 && dipInfo.oprnOprtType === EnumOprnOprtType.诊断性操作)
+      },
+      {
+        tooltip: '综合: 相关手术',
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.综合 && dipInfo.oprnOprtType === EnumOprnOprtType.相关手术)
+      },
+      {
+        tooltip: '综合: 治疗性操作',
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.综合 && dipInfo.oprnOprtType === EnumOprnOprtType.治疗性操作)
+      },
+      {
+        tooltip: '核心: 保守治疗',
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.核心 && dipInfo.oprnOprtType === EnumOprnOprtType.保守治疗)
+      },
+      {
+        tooltip: '基层: 保守治疗',
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.基层 && dipInfo.oprnOprtType === EnumOprnOprtType.保守治疗)
+      },
+      {
+        tooltip: '综合: 保守治疗',
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.综合 && dipInfo.oprnOprtType === EnumOprnOprtType.保守治疗)
+      }
+    ]
+
+    for (let i = 0; i < chooseList.length; i++) {
+      if (chooseList[i].filter(dipInfoList).length > 0) {
+        chooseGroupByType = chooseList[i].filter(dipInfoList)
+
+        break
+      }
+    }
+
+    this.dipService.logger({
+      title: '根据 DIP 类型选择唯一组',
+      description: chooseGroupByType
+    })
+
+    return chooseGroupByType
   }
 }

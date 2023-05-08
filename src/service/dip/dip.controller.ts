@@ -65,7 +65,7 @@ export class DipController {
 
   @ApiOperation({ tags: ['测算'], description: '批量分组' })
   @Get('dip/all')
-  async toDipAll(): Promise<TDipInfo[]> {
+  async toDipAll(): Promise<any> {
     // 刷新缓存
     await this.dipService.onApplicationBootstrap()
     // 获取待处理数据
@@ -76,15 +76,15 @@ export class DipController {
     // 结算
     const dipSettleList = this.dipService.toSettleList(rawParams, formatParams, dipList)
     // 保存
-    this.dipService.updateDipTodoResult(rawParams, dipSettleList)
+    const result = await this.dipService.updateDipTodoResult(rawParams, dipSettleList)
 
     // 执行分组
-    return dipSettleList
+    return result.raw
   }
 
   @ApiOperation({ tags: ['测算'], description: '批量结算' })
   @Get('settle/all')
-  async toSettleAll(): Promise<TDipInfo[]> {
+  async toSettleAll(): Promise<any> {
     // 刷新缓存
     await this.dipService.onApplicationBootstrap()
     // 获取待处理数据
@@ -95,9 +95,9 @@ export class DipController {
     // 结算
     const dipSettleList = this.dipService.toSettleList(rawParams, formatParams, dipList)
     // 保存
-    this.dipService.updateDipTodoResult(rawParams, dipSettleList)
+    const result = await this.dipService.updateDipTodoResult(rawParams, dipSettleList)
 
-    return dipSettleList
+    return result.raw
   }
 
   @ApiOperation({ tags: ['测算'], description: '根据 ID 分组' })

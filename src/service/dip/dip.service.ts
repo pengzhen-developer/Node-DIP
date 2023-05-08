@@ -83,6 +83,12 @@ export class DipService implements OnApplicationBootstrap {
       return this.setUnDipResult(EnumDipUnMatchCode.参数错误, `参数错误: ${validation.join(',')}`, rawParams)
     }
 
+    // 验证结算配置
+    const configSettle = this.getConfigSettle(rawParams.region, rawParams.version, rawParams.hosCode)
+    if (!configSettle) {
+      return this.setUnDipResult(EnumDipUnMatchCode.结算失败, '参数错误: 未获取到当前医疗机构的结算配置，请检查！', rawParams)
+    }
+
     // 尝试入组
     const dipInfo = this.RegionStrategyService.toDip(rawParams, formatParams)
 
@@ -104,13 +110,6 @@ export class DipService implements OnApplicationBootstrap {
    */
   toSettle(rawParams: DipTodo, formatParams: DipTodo, dipInfo: TDipInfo): TDipInfo {
     if (dipInfo.dipCode) {
-      // 验证入参
-      const configSettle = this.getConfigSettle(rawParams.region, rawParams.version, rawParams.hosCode)
-
-      if (!configSettle) {
-        return this.setUnDipResult(EnumDipUnMatchCode.结算失败, '结算失败: 未获取到当前医疗机构的结算配置，请检查！', rawParams)
-      }
-
       const settleInfo = this.RegionStrategyService.toSettle(rawParams, formatParams, dipInfo)
 
       return settleInfo
@@ -175,9 +174,9 @@ export class DipService implements OnApplicationBootstrap {
       }
 
       // 诊断编码转换
-      item.diagCode = item.diagCode.map((diagCode) => this.impICD10(undefined, undefined, diagCode)).filter((item) => item)
+      // item.diagCode = item.diagCode.map((diagCode) => this.impICD10(undefined, undefined, diagCode)).filter((item) => item)
       // 手术编码转换
-      item.oprnOprtCode = item.oprnOprtCode.map((oprnOprtCode) => this.impICD9(undefined, undefined, oprnOprtCode)).filter((item) => item)
+      // item.oprnOprtCode = item.oprnOprtCode.map((oprnOprtCode) => this.impICD9(undefined, undefined, oprnOprtCode)).filter((item) => item)
       // 手术编码排除
       item.oprnOprtCode = item.oprnOprtCode.map((oprnOprtCode) => this.excludeICD9(item.region, item.version, oprnOprtCode)).filter((item) => item)
 
