@@ -77,7 +77,7 @@ export class AppService implements OnModuleInit {
     await this.cacheManager.set('CACHE_BASIC_GROUP_LIST', CACHE_BASIC_GROUP_LIST, 0)
     await this.cacheManager.set('CACHE_COMPREHENSIVE_GROUP_LIST', CACHE_COMPREHENSIVE_GROUP_LIST, 0)
 
-    Logger.log('Cache DipContents')
+    Logger.log('DipContents', 'CacheManager')
   }
 
   private async cacheDipContentsSupplement() {
@@ -97,7 +97,7 @@ export class AppService implements OnModuleInit {
 
     await this.cacheManager.set('CACHE_DIP_CONTENTS_SUPPLEMENT_LIST', CACHE_DIP_CONTENTS_SUPPLEMENT_LIST, 0)
 
-    Logger.log('Cache DipContentsSupplement')
+    Logger.log('DipContentsSupplement', 'CacheManager')
   }
 
   private async cacheDipConfigExcludeIcd9() {
@@ -113,7 +113,7 @@ export class AppService implements OnModuleInit {
 
     await this.cacheManager.set('CACHE_DIP_CONFIG_EXCLUDE_ICD9', CACHE_DIP_CONFIG_EXCLUDE_ICD9, 0)
 
-    Logger.log('Cache DipConfigExcludeIcd9')
+    Logger.log('DipConfigExcludeIcd9', 'CacheManager')
   }
 
   private async cacheDipConfigSettle() {
@@ -129,7 +129,7 @@ export class AppService implements OnModuleInit {
 
     await this.cacheManager.set('CACHE_DIP_CONFIG_SETTLE', CACHE_DIP_CONFIG_SETTLE, 0)
 
-    Logger.log('Cache DipConfigSettle')
+    Logger.log('DipConfigSettle', 'CacheManager')
   }
 
   private async cacheDipConfigAvgAmount() {
@@ -153,7 +153,7 @@ export class AppService implements OnModuleInit {
 
     await this.cacheManager.set('CACHE_DIP_CONFIG_AVG_AMOUNT', CACHE_DIP_CONFIG_AVG_AMOUNT, 0)
 
-    Logger.log('Cache DipConfigAvgAmount')
+    Logger.log('DipConfigAvgAmount', 'CacheManager')
   }
 
   private async cacheICD9() {
@@ -178,7 +178,7 @@ export class AppService implements OnModuleInit {
       await this.cacheManager.set(key, CACHE[key], 0)
     }
 
-    Logger.log('Cache ICD9')
+    Logger.log('ICD9', 'CacheManager')
   }
 
   private async cacheICD10() {
@@ -203,7 +203,7 @@ export class AppService implements OnModuleInit {
       await this.cacheManager.set(key, CACHE[key], 0)
     }
 
-    Logger.log('Cache ICD10')
+    Logger.log('ICD10', 'CacheManager')
   }
 
   private async cacheDipConfigCcMcc() {
@@ -219,7 +219,7 @@ export class AppService implements OnModuleInit {
 
     await this.cacheManager.set('CACHE_DIP_CONFIG_CC_MCC', CACHE_DIP_CONFIG_CC_MCC, 0)
 
-    Logger.log('Cache DipConfigCcMcc')
+    Logger.log('DipConfigCcMcc', 'CacheManager')
   }
 
   private async cacheDipConfigExcludeCcMcc() {
@@ -239,6 +239,6 @@ export class AppService implements OnModuleInit {
 
     await this.cacheManager.set('CACHE_DIP_CONFIG_EXCLUDE_CC_MCC', CACHE_DIP_CONFIG_EXCLUDE_CC_MCC, 0)
 
-    Logger.log('Cache DipConfigExcludeCcMcc')
+    Logger.log('DipConfigExcludeCcMcc', 'CacheManager')
   }
 }
