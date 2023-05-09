@@ -56,10 +56,6 @@ export class RegionBaseService implements IRegionStrategy {
         : rawParams.insuranceType === EnumInsuranceType.职工
         ? configSettle.factorEmployeeAvgAmount
         : configSettle.factorResidentAvgAmount
-    /** 结算调整系数（医保类型） */
-    const dipFactorScorePrice = rawParams.insuranceType === EnumInsuranceType.职工 ? configSettle.factorEmployeePrice : configSettle.factorResidentPrice
-    /** 结算调整系数（医疗机构） */
-    const dipFactorHospital = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup : configSettle.factorHospital
 
     /** 模拟 DIP 均费 */
     const getDipAvgAmount = () => {
@@ -72,44 +68,59 @@ export class RegionBaseService implements IRegionStrategy {
         return (configAvgAmount?.dipAvgAmount ?? dipInfo.dipScore) * dipFactorAvgAmount
       }
     }
-    /** 计算 DIP 结算分值 */
-    const getDipSettleScore = () => {
+
+    /** 获取偏差系数和偏差类型 */
+    const getDipSettleFactorDeviation = () => {
       const sumAmount = rawParams.sumAmount ?? 0
       const dipAvgAmount = getDipAvgAmount()
 
       if (dipAvgAmount === 0) {
         dipInfo.dipSettleDeviation = EnumDeviation.正常倍率
-        return 0
+        return 1
       }
 
       // 偏差类型 - 高倍率
       // 费用在 200%以上的病例病种分值 =〔(该病例医疗总费用 ÷ 上一年度同级别定点医疗机构该病种次均医疗总费用 - 2）+ 1〕 × 该病种分值
       if (sumAmount > dipAvgAmount * 2) {
         dipInfo.dipSettleDeviation = EnumDeviation.高倍率
-        return (sumAmount / dipAvgAmount - 2 + 1) * dipScore
+        return sumAmount / dipAvgAmount - 2 + 1
       }
       // 偏差类型 - 低倍率
       // 费用在 50%以下的病例病种分值 = 该病例医疗总费用 ÷ 上一年度同级别定点医疗机构该病种平均费用 × 该病种分值
       else if (sumAmount < dipAvgAmount * 0.5) {
         dipInfo.dipSettleDeviation = EnumDeviation.低倍率
-        return (sumAmount / dipAvgAmount) * dipScore
+        return sumAmount / dipAvgAmount
       }
       // 偏差类型 - 正常倍率
       else {
         dipInfo.dipSettleDeviation = EnumDeviation.正常倍率
-        return dipScore
+        return 1
       }
     }
 
+    /** 获取最终分值 */
+    const getDipSettleFactor = () => {
+      const factor = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup : configSettle.factorHospital
+      return dipInfo.dipScore * dipInfo.dipSettleFactorDeviation * factor
+    }
+
+    /** 获取最终分值单价 */
+    const dipDipSettleScorePrice = () => {
+      return rawParams.insuranceType === EnumInsuranceType.职工 ? configSettle.factorEmployeePrice : configSettle.factorResidentPrice
+    }
+
     dipInfo.dipSettleAvgAmount = getDipAvgAmount()
-    dipInfo.dipSettleScore = getDipSettleScore()
-    dipInfo.dipSettleScorePriceEmployee = configSettle.factorEmployeePrice
-    dipInfo.dipSettleScorePriceResident = configSettle.factorResidentPrice
-    dipInfo.dipSettleScorePrice = dipFactorScorePrice
+
+    dipInfo.dipSettleFactorDeviation = getDipSettleFactorDeviation()
     dipInfo.dipSettleFactorHospital = configSettle.factorHospital
     dipInfo.dipSettleFactorBasicGroup = dipInfo.dipFactorBasicGroup
-    dipInfo.dipSettleFactor = dipFactorHospital
-    dipInfo.dipSettleAmount = parseFloat(dipInfo.dipScore as any) === 0 ? rawParams.sumAmount : dipInfo.dipSettleScore * dipInfo.dipSettleScorePrice * dipInfo.dipSettleFactor ?? 0
+
+    dipInfo.dipSettleScorePriceEmployee = configSettle.factorEmployeePrice
+    dipInfo.dipSettleScorePriceResident = configSettle.factorResidentPrice
+
+    dipInfo.dipSettleScore = getDipSettleFactor()
+    dipInfo.dipSettleScorePrice = dipDipSettleScorePrice()
+    dipInfo.dipSettleAmount = parseFloat(dipInfo.dipScore as any) === 0 ? rawParams.sumAmount : dipInfo.dipSettleScore * dipInfo.dipSettleScorePrice ?? 0
 
     return dipInfo
   }

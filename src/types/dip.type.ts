@@ -75,20 +75,23 @@ export type TDipMatch = {
   dipSettleDeviation?: string
   /** 结算平均费用（经系数调整） */
   dipSettleAvgAmount?: number
-  /** 结算分值 */
-  dipSettleScore?: number
+
   /** 结算分值单价(居民) */
   dipSettleScorePriceResident?: number
   /** 结算分值单价(职工) */
   dipSettleScorePriceEmployee?: number
+
+  /** 分值调整系数【经医疗机构调整】 */
+  dipSettleFactorHospital?: number
+  /** 分值调整系数【经基层病种调整】 */
+  dipSettleFactorBasicGroup?: number
+  /** 分值调整系数【经偏差类型调整】 */
+  dipSettleFactorDeviation?: number
+
+  /** 结算分值 */
+  dipSettleScore?: number
   /** 结算分值单价 */
   dipSettleScorePrice?: number
-  /** 结算医疗机构调整系数 */
-  dipSettleFactorHospital?: number
-  /** 结算基层病种调整系数 */
-  dipSettleFactorBasicGroup?: number
-  /** 结算分值调整系数 */
-  dipSettleFactor?: number
   /** 结算费用 */
   dipSettleAmount?: number
 }
