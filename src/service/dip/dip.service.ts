@@ -72,34 +72,29 @@ export class DipService implements OnApplicationBootstrap {
    * 单次分组
    */
   toDip(rawParams: DipTodo, formatParams: DipTodo): TDipInfo {
-    // 初始化 Log
+    // 记录日志
     this.log = []
 
-    // 验证入参
-    const validation = this.validateParams(rawParams)
-
-    // 返回参数校验失败
-    if (validation && validation.length > 0) {
-      return this.setUnDipResult(EnumDipUnMatchCode.参数错误, `参数错误: ${validation.join(',')}`, rawParams)
+    // 验证参数
+    if (this.validateParams(rawParams)?.length > 0) {
+      return this.setUnDipResult(EnumDipUnMatchCode.参数错误, `参数错误: ${this.validateParams(rawParams).join(',')}`, rawParams)
     }
-
-    // 验证结算配置
-    const configSettle = this.getConfigSettle(rawParams.region, rawParams.version, rawParams.hosCode)
-    if (!configSettle) {
+    // 验证结算
+    if (!this.getConfigSettle(rawParams.region, rawParams.version, rawParams.hosCode)) {
       return this.setUnDipResult(EnumDipUnMatchCode.结算失败, '参数错误: 未获取到当前医疗机构的结算配置，请检查！', rawParams)
     }
 
     // 尝试入组
     const dipInfo = this.RegionStrategyService.toDip(rawParams, formatParams)
 
-    // 返回入组
+    // 入组成功，返回入组
     if (dipInfo) {
       dipInfo.id = rawParams.id
       dipInfo.dataId = rawParams.dataId
 
       return dipInfo
     }
-    // 返回未入组
+    // 入组失败，返回未入组
     else {
       return this.setUnDipResult(EnumDipUnMatchCode.入组失败, '入组失败: 诊断+手术操作无法入组，请检查！', rawParams)
     }
