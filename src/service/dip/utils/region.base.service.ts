@@ -45,28 +45,26 @@ export class RegionBaseService implements IRegionStrategy {
       dipInfo.dipSupplementName,
       rawParams.insuranceType
     )
-    /** 基准分值 */
-    const dipScore = dipInfo.dipSupplementName ? dipInfo.dipSupplementScore * dipInfo.dipSupplementFactor : dipInfo.dipScore
-    /** 均费调整系数（基层 & 医保类型） */
-    const dipFactorAvgAmount =
-      dipInfo.dipType === EnumDipType.基层
-        ? rawParams.insuranceType === EnumInsuranceType.职工
-          ? configSettle.factorBasicEmployeeAvgAmount
-          : configSettle.factorBasicResidentAvgAmount
-        : rawParams.insuranceType === EnumInsuranceType.职工
-        ? configSettle.factorEmployeeAvgAmount
-        : configSettle.factorResidentAvgAmount
 
     /** 模拟 DIP 均费 */
     const getDipAvgAmount = () => {
-      // 存在辅助目录，使用: 辅助目录分值 * 均费调整系数（基层 & 医保类型）
-      if (dipInfo.dipSupplementScore) {
-        return (configAvgAmount?.dipAvgAmount ?? dipInfo.dipSupplementScore) * dipInfo.dipSupplementFactor * dipFactorAvgAmount
-      }
-      // 存在基准目录，使用: 基准目录分值 * 均费调整系数（基层 & 医保类型）
-      else {
-        return (configAvgAmount?.dipAvgAmount ?? dipInfo.dipScore) * dipFactorAvgAmount
-      }
+      // 模拟均费 = 基准分值 * 均费调整系数【通过清算数据测算】
+
+      /** 基准分值 */
+      const dipScore = dipInfo.dipSupplementName ? dipInfo.dipSupplementScore * dipInfo.dipSupplementFactor : dipInfo.dipScore
+
+      /** 均费调整系数 */
+      const dipFactorAvgAmount =
+        dipInfo.dipType === EnumDipType.基层
+          ? rawParams.insuranceType === EnumInsuranceType.职工
+            ? configSettle.factorBasicEmployeeAvgAmount * dipInfo.dipFactorBasicGroup
+            : configSettle.factorBasicResidentAvgAmount * dipInfo.dipFactorBasicGroup
+          : rawParams.insuranceType === EnumInsuranceType.职工
+          ? configSettle.factorEmployeeAvgAmount
+          : configSettle.factorResidentAvgAmount
+
+      // 单一病组均费【通过清算数据测算】 => 模拟均费
+      return configAvgAmount?.dipAvgAmount ?? dipScore * dipFactorAvgAmount
     }
 
     /** 获取偏差系数和偏差类型 */
