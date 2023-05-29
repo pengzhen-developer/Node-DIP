@@ -446,67 +446,78 @@ export class RegionBaseService implements IRegionStrategy {
    * 根据 DIP 类型选择唯一组
    */
   chooseUniqueGroupByDipType(rawParams: DipTodo, formatParams: DipTodo, dipInfoList: TDipInfo[]): TDipInfo[] {
-    let chooseGroupByDipTypeTooltip = ''
-    let chooseGroupByDipType: TDipInfo[] = []
+    let chooseGroupByType: TDipInfo[] = []
+
+    const operationLevel = this.getOprnOprtType(formatParams.oprnOprtCode)
+
+    // 优先匹配和病例的操作最大类型匹配的核心 -> 综合
+    // 其次匹配低于病例的操作最大类型匹配的核心 -> 综合
 
     const chooseList = [
       {
         tooltip: '核心: 相关手术',
-        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((item) => item.dipType === EnumDipType.核心 && item.oprnOprtType === EnumOprnOprtType.相关手术)
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.核心 && dipInfo.oprnOprtType === EnumOprnOprtType.相关手术)
+      },
+      {
+        tooltip: '基层: 相关手术',
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.基层 && dipInfo.oprnOprtType === EnumOprnOprtType.相关手术)
       },
       {
         tooltip: '核心: 治疗性操作',
-        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((item) => item.dipType === EnumDipType.核心 && item.oprnOprtType === EnumOprnOprtType.治疗性操作)
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.核心 && dipInfo.oprnOprtType === EnumOprnOprtType.治疗性操作)
+      },
+      {
+        tooltip: '基层: 治疗性操作',
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.基层 && dipInfo.oprnOprtType === EnumOprnOprtType.治疗性操作)
       },
       {
         tooltip: '核心: 诊断性操作',
-        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((item) => item.dipType === EnumDipType.核心 && item.oprnOprtType === EnumOprnOprtType.诊断性操作)
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.核心 && dipInfo.oprnOprtType === EnumOprnOprtType.诊断性操作)
       },
       {
-        tooltip: '核心: 保守治疗',
-        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((item) => item.dipType === EnumDipType.核心 && item.oprnOprtType === EnumOprnOprtType.保守治疗)
-      },
-      {
-        tooltip: '基层',
-        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((item) => item.dipType === EnumDipType.基层)
+        tooltip: '基层: 诊断性操作',
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.基层 && dipInfo.oprnOprtType === EnumOprnOprtType.诊断性操作)
       },
       {
         tooltip: '综合: 相关手术',
-        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((item) => item.dipType === EnumDipType.综合 && item.oprnOprtType === EnumOprnOprtType.相关手术)
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.综合 && dipInfo.oprnOprtType === EnumOprnOprtType.相关手术)
       },
       {
         tooltip: '综合: 治疗性操作',
-        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((item) => item.dipType === EnumDipType.综合 && item.oprnOprtType === EnumOprnOprtType.治疗性操作)
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.综合 && dipInfo.oprnOprtType === EnumOprnOprtType.治疗性操作)
       },
       {
         tooltip: '综合: 诊断性操作',
-        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((item) => item.dipType === EnumDipType.综合 && item.oprnOprtType === EnumOprnOprtType.诊断性操作)
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.综合 && dipInfo.oprnOprtType === EnumOprnOprtType.诊断性操作)
+      },
+      {
+        tooltip: '核心: 保守治疗',
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.核心 && dipInfo.oprnOprtType === EnumOprnOprtType.保守治疗)
+      },
+      {
+        tooltip: '基层: 保守治疗',
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.基层 && dipInfo.oprnOprtType === EnumOprnOprtType.保守治疗)
       },
       {
         tooltip: '综合: 保守治疗',
-        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((item) => item.dipType === EnumDipType.综合 && item.oprnOprtType === EnumOprnOprtType.保守治疗)
-      },
-      {
-        tooltip: '综合: 空白病组',
-        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((item) => item.dipType === EnumDipType.综合 && item.oprnOprtType === '空白病组')
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.综合 && dipInfo.oprnOprtType === EnumOprnOprtType.保守治疗)
       }
     ]
 
     for (let i = 0; i < chooseList.length; i++) {
       if (chooseList[i].filter(dipInfoList).length > 0) {
-        chooseGroupByDipTypeTooltip = chooseList[i].tooltip
-        chooseGroupByDipType = chooseList[i].filter(dipInfoList)
+        chooseGroupByType = chooseList[i].filter(dipInfoList)
 
         break
       }
     }
 
     this.dipService.logger({
-      title: `根据 DIP 类型选择唯一组: ${chooseGroupByDipTypeTooltip}`,
-      description: chooseGroupByDipType
+      title: '根据 DIP 类型选择唯一组',
+      description: chooseGroupByType
     })
 
-    return chooseGroupByDipType
+    return chooseGroupByType
   }
 
   /**
