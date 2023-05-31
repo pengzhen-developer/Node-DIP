@@ -69,11 +69,11 @@ docker buildx build --platform=linux/amd64 -t dip-core .
 
 # tag
 docker tag dip-core:latest harbor.fusiontech.cn/dip_datacore/dip-core:latest
-docker tag dip-core:latest harbor.fusiontech.cn/dip_datacore/dip-core:0.7.4
+docker tag dip-core:latest harbor.fusiontech.cn/dip_datacore/dip-core:0.8.0
 
 # push
 docker push harbor.fusiontech.cn/dip_datacore/dip-core:latest
-docker push harbor.fusiontech.cn/dip_datacore/dip-core:0.7.4
+docker push harbor.fusiontech.cn/dip_datacore/dip-core:0.8.0
 ```
 
 ## Support
