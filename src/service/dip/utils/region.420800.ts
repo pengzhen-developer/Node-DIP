@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common'
 import { DipTodo } from 'src/entities/DipTodo'
-import { TDipInfo, TDipContents } from 'src/types/dip.type'
+import { TDipInfo, TDipContents, EnumOprnOprtType } from 'src/types/dip.type'
 import { getCacheKey } from 'src/utils'
 import { DipService } from '../dip.service'
 import { RegionBaseService } from './region.base.service'
@@ -9,6 +9,100 @@ import { RegionBaseService } from './region.base.service'
 export class Region_420800 extends RegionBaseService {
   constructor(@Inject(forwardRef(() => DipService)) public readonly dipService: DipService) {
     super(dipService)
+  }
+
+  intoCoreGroups(rawParams: DipTodo, formatParams: DipTodo, dipContentList: TDipContents): TDipInfo[] {
+    const dipInfoList: TDipInfo[] = []
+
+    // 获取缓存 key
+    const cacheKey = getCacheKey(formatParams.region, formatParams.version, formatParams.diagCode[0].substring(0, 5))
+    // 判定诊断类目
+    const dipList = dipContentList[cacheKey]?.concat([]) ?? []
+
+    // 有手术及操作判定
+    if (formatParams.oprnOprtCode.length > 0) {
+      for (let i = 0; i < dipList.length; i++) {
+        const dipInfo = dipList[i]
+
+        // 1. 判定手术是否单一存在
+        if (dipInfo.oprnOprtCode && dipInfo.oprnOprtCode.indexOf('+') === -1) {
+          const dipOperations = dipInfo.oprnOprtCode?.split('/') ?? []
+
+          // 如果手术操作只有 4 位码（细目），代表包含该细目的所有手术操作
+          if (dipInfo.oprnOprtCode.length === 5 && dipOperations.some((item) => (formatParams.oprnOprtCode as string[]).map((item) => item.substring(0, 5)).includes(item))) {
+            const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
+
+            dipInfoResult.oprnOprtCodeMatch = (formatParams.oprnOprtCode as string[]).filter((v) => dipOperations.some((o) => v.startsWith(o))) ?? []
+            dipInfoResult.oprnOprtCodeMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
+            dipInfoResult.oprnOprtCodeUnMatch = (formatParams.oprnOprtCode as string[]).filter((v) => dipOperations.some((o) => !v.startsWith(o))) ?? []
+            dipInfoResult.oprnOprtCodeUnMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeUnMatch)
+            dipInfoResult.oprnOprtType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
+
+            dipInfoList.push(dipInfoResult)
+          }
+
+          // 否则，代表必须等于该手术操作
+          else if (dipInfo.oprnOprtCode.length !== 5 && dipOperations.some((item) => formatParams.oprnOprtCode.includes(item))) {
+            const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
+
+            dipInfoResult.oprnOprtCodeMatch = (formatParams.oprnOprtCode as string[]).filter((v) => dipOperations.includes(v)) ?? []
+            dipInfoResult.oprnOprtCodeMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
+            dipInfoResult.oprnOprtCodeUnMatch = (formatParams.oprnOprtCode as string[]).filter((v) => !dipOperations.includes(v)) ?? []
+            dipInfoResult.oprnOprtCodeUnMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeUnMatch)
+            dipInfoResult.oprnOprtType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
+
+            dipInfoList.push(dipInfoResult)
+          }
+        }
+        // 2. 判定手术是否联合存在（组内手术操作存在 + 符号）
+        else if (dipInfo.oprnOprtCode && dipInfo.oprnOprtCode.indexOf('+') !== -1) {
+          const dipOperations = dipInfo?.oprnOprtCode?.split('+') ?? []
+          if (
+            dipOperations.every((item) => {
+              if (
+                // 任一 / 满足
+                (item.indexOf('/') !== -1 && item.split('/').some((item) => formatParams.oprnOprtCode.includes(item))) ||
+                // 所有 + 满足
+                (item.indexOf('/') === -1 && formatParams.oprnOprtCode.includes(item))
+              ) {
+                return true
+              }
+            })
+          ) {
+            const dipOperationsSplitArray = dipOperations.map((item) => item.split('/'))?.flat()
+            const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
+            dipInfoResult.oprnOprtCodeMatch = (formatParams.oprnOprtCode as string[]).filter((v) => dipOperationsSplitArray.includes(v)) ?? []
+            dipInfoResult.oprnOprtCodeMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
+            dipInfoResult.oprnOprtCodeUnMatch = (formatParams.oprnOprtCode as string[]).filter((v) => !dipOperationsSplitArray.includes(v)) ?? []
+            dipInfoResult.oprnOprtCodeUnMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeUnMatch)
+            dipInfoResult.oprnOprtType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
+
+            dipInfoList.push(dipInfoResult)
+          }
+        }
+      }
+    }
+
+    // 保守治疗组
+    if (dipInfoList.length === 0 && this.getOprnOprtType(formatParams.oprnOprtCode) === EnumOprnOprtType.保守治疗) {
+      const dipInfo = dipList.find((item) => !item.oprnOprtCode)
+
+      if (dipInfo) {
+        const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
+        dipInfoResult.oprnOprtCodeMatch = []
+        dipInfoResult.oprnOprtCodeUnMatch = formatParams.oprnOprtCode as string[]
+        dipInfoResult.oprnOprtType = EnumOprnOprtType.保守治疗
+
+        dipInfoList.push(dipInfoResult)
+      }
+    }
+
+    this.dipService.logger({
+      title: '入核心组',
+      description: dipInfoList
+    })
+
+    return dipInfoList
   }
 
   intoBasicGroups(rawParams: DipTodo, formatParams: DipTodo, dipContentList: TDipContents): TDipInfo[] {
