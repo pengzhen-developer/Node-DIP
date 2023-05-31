@@ -11,6 +11,31 @@ export class Region_420800 extends RegionBaseService {
     super(dipService)
   }
 
+  toDip(rawParams: DipTodo, formatParams: DipTodo): TDipInfo {
+    let decideGroups: TDipInfo[] = []
+    // 入主目录
+    let coreGroups = this.intoCoreGroups(rawParams, formatParams, this.dipService.CACHE_CORE_GROUP_LIST)
+    let basicGroups = this.intoBasicGroups(rawParams, formatParams, this.dipService.CACHE_BASIC_GROUP_LIST)
+    let comprehensiveGroup = this.intoComprehensiveGroup(rawParams, formatParams, this.dipService.CACHE_COMPREHENSIVE_GROUP_LIST)
+    // 入辅助目录
+    coreGroups = this.intoSupplementGroup(rawParams, formatParams, this.dipService.CACHE_DIP_CONTENTS_SUPPLEMENT_LIST, coreGroups)
+    basicGroups = this.intoSupplementGroup(rawParams, formatParams, this.dipService.CACHE_DIP_CONTENTS_SUPPLEMENT_LIST, basicGroups)
+    comprehensiveGroup = this.intoSupplementGroup(rawParams, formatParams, this.dipService.CACHE_DIP_CONTENTS_SUPPLEMENT_LIST, comprehensiveGroup)
+
+    // 荆门：个性化分组方案，分组目录中存在细目的手术操作，优先全码的手术操作
+    decideGroups = this.chooseUniqueGroupByOprnCode(rawParams, formatParams, [...coreGroups, ...basicGroups])
+    // FIXME:
+    // 荆门：个性化需求，手术组优先入分值更高的组
+    decideGroups = this.chooseUniqueGroupByDipScore(rawParams, formatParams, [...decideGroups])
+
+    // 选定组
+    decideGroups = this.chooseCoreGroupByMatchQuantity(rawParams, formatParams, [...decideGroups])
+    decideGroups = this.chooseCoreGroupByAbsoluteFee(rawParams, formatParams, [...decideGroups])
+    decideGroups = this.chooseUniqueGroupByDipType(rawParams, formatParams, [...decideGroups, ...comprehensiveGroup])
+
+    return decideGroups[0]
+  }
+
   intoCoreGroups(rawParams: DipTodo, formatParams: DipTodo, dipContentList: TDipContents): TDipInfo[] {
     const dipInfoList: TDipInfo[] = []
 
@@ -20,16 +45,16 @@ export class Region_420800 extends RegionBaseService {
     const dipList = dipContentList[cacheKey]?.concat([]) ?? []
 
     // 有手术及操作判定
-    if (formatParams.oprnOprtCode.length > 0) {
+    if (formatParams.oprnOprtCode?.length > 0) {
       for (let i = 0; i < dipList.length; i++) {
         const dipInfo = dipList[i]
 
         // 1. 判定手术是否单一存在
-        if (dipInfo.oprnOprtCode && dipInfo.oprnOprtCode.indexOf('+') === -1) {
+        if (dipInfo.oprnOprtCode && dipInfo.oprnOprtCode?.indexOf('+') === -1) {
           const dipOperations = dipInfo.oprnOprtCode?.split('/') ?? []
 
           // 如果手术操作只有 4 位码（细目），代表包含该细目的所有手术操作
-          if (dipInfo.oprnOprtCode.length === 5 && dipOperations.some((item) => (formatParams.oprnOprtCode as string[]).map((item) => item.substring(0, 5)).includes(item))) {
+          if (dipInfo.oprnOprtCode?.length === 5 && dipOperations.some((item) => (formatParams.oprnOprtCode as string[]).map((item) => item.substring(0, 5)).includes(item))) {
             const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
 
             dipInfoResult.oprnOprtCodeMatch = (formatParams.oprnOprtCode as string[]).filter((v) => dipOperations.some((o) => v.startsWith(o))) ?? []
@@ -42,7 +67,7 @@ export class Region_420800 extends RegionBaseService {
           }
 
           // 否则，代表必须等于该手术操作
-          else if (dipInfo.oprnOprtCode.length !== 5 && dipOperations.some((item) => formatParams.oprnOprtCode.includes(item))) {
+          else if (dipInfo.oprnOprtCode?.length !== 5 && dipOperations.some((item) => formatParams.oprnOprtCode?.includes(item))) {
             const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
 
             dipInfoResult.oprnOprtCodeMatch = (formatParams.oprnOprtCode as string[]).filter((v) => dipOperations.includes(v)) ?? []
@@ -55,15 +80,15 @@ export class Region_420800 extends RegionBaseService {
           }
         }
         // 2. 判定手术是否联合存在（组内手术操作存在 + 符号）
-        else if (dipInfo.oprnOprtCode && dipInfo.oprnOprtCode.indexOf('+') !== -1) {
+        else if (dipInfo.oprnOprtCode && dipInfo.oprnOprtCode?.indexOf('+') !== -1) {
           const dipOperations = dipInfo?.oprnOprtCode?.split('+') ?? []
           if (
             dipOperations.every((item) => {
               if (
                 // 任一 / 满足
-                (item.indexOf('/') !== -1 && item.split('/').some((item) => formatParams.oprnOprtCode.includes(item))) ||
+                (item.indexOf('/') !== -1 && item.split('/').some((item) => formatParams.oprnOprtCode?.includes(item))) ||
                 // 所有 + 满足
-                (item.indexOf('/') === -1 && formatParams.oprnOprtCode.includes(item))
+                (item.indexOf('/') === -1 && formatParams.oprnOprtCode?.includes(item))
               ) {
                 return true
               }
@@ -193,5 +218,33 @@ export class Region_420800 extends RegionBaseService {
     })
 
     return dipInfoList
+  }
+
+  /**
+   * 根据手术操作选定组（手术操作编码 > 细目编码）
+   */
+  chooseUniqueGroupByOprnCode(rawParams: DipTodo, formatParams: DipTodo, dipInfoList: TDipInfo[]): TDipInfo[] {
+    if (
+      dipInfoList.some((dipInfo) => dipInfo.oprnOprtCode?.length === 5) &&
+      dipInfoList
+        .filter((dipInfo) => dipInfo.oprnOprtCode?.length !== 5)
+        .some((dipInfo) => dipInfo.oprnOprtCode?.startsWith(dipInfoList.find((dipInfo) => dipInfo.oprnOprtCode?.length === 5)?.oprnOprtCode))
+    ) {
+      return dipInfoList.filter((dipInfo) => dipInfo.oprnOprtCode?.length !== 5)
+    } else {
+      return dipInfoList
+    }
+  }
+
+  /**
+   * FIXME:
+   * 根据分值选定组（核心手术组，优先分值更高的）
+   */
+  chooseUniqueGroupByDipScore(rawParams: DipTodo, formatParams: DipTodo, dipInfoList: TDipInfo[]): TDipInfo[] {
+    if (dipInfoList.some((dipInfo) => dipInfo.oprnOprtType === EnumOprnOprtType.相关手术)) {
+      return [dipInfoList.reduce((p, c) => (Number(p.dipScore) >= Number(c.dipScore) ? p : c))]
+    } else {
+      return dipInfoList
+    }
   }
 }
