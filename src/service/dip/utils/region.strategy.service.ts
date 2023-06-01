@@ -52,4 +52,8 @@ export class RegionStrategyService implements IRegionStrategy {
   toSettle(rawParams: DipTodo, formatParams: DipTodo, dipInfo: TDipInfo): TDipInfo {
     return this.regionPolicy(rawParams).toSettle(rawParams, formatParams, dipInfo)
   }
+
+  toRecommend(rawParams: DipTodo, formatParams: DipTodo): TDipInfo[] {
+    return this.regionPolicy(rawParams).toRecommend(rawParams, formatParams)
+  }
 }

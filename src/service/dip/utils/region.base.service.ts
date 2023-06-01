@@ -96,13 +96,21 @@ export class RegionBaseService implements IRegionStrategy {
       }
     }
 
-    /** 获取最终分值 */
-    const getDipSettleFactor = () => {
-      const factor = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup : configSettle.factorHospital
-      return dipInfo.dipScore * dipInfo.dipSettleFactorDeviation * factor
+    /** 获取结算分值 */
+    const getDipSettleScore = () => {
+      const hospitalFactor = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup : configSettle.factorHospital
+      const supplementFactor = dipInfo.dipSupplementName ? dipInfo.dipSupplementFactor : 1
+      return dipInfo.dipScore * dipInfo.dipSettleFactorDeviation * hospitalFactor * supplementFactor
     }
 
-    /** 获取最终分值单价 */
+    /** 获取基准分值（考虑辅助目录和基层） */
+    const getDipScore = () => {
+      const hospitalFactor = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup : configSettle.factorHospital
+      const supplementFactor = dipInfo.dipSupplementName ? dipInfo.dipSupplementFactor : 1
+      return dipInfo.dipScore * hospitalFactor * supplementFactor
+    }
+
+    /** 获取结算分值单价 */
     const dipDipSettleScorePrice = () => {
       return rawParams.insuranceType === EnumInsuranceType.职工 ? configSettle.factorEmployeePrice : configSettle.factorResidentPrice
     }
@@ -116,11 +124,58 @@ export class RegionBaseService implements IRegionStrategy {
     dipInfo.dipSettleScorePriceEmployee = configSettle.factorEmployeePrice
     dipInfo.dipSettleScorePriceResident = configSettle.factorResidentPrice
 
-    dipInfo.dipSettleScore = getDipSettleFactor()
+    dipInfo.dipSettleScore = getDipSettleScore()
     dipInfo.dipSettleScorePrice = dipDipSettleScorePrice()
     dipInfo.dipSettleAmount = parseFloat(dipInfo.dipScore as any) === 0 ? rawParams.sumAmount : dipInfo.dipSettleScore * dipInfo.dipSettleScorePrice ?? 0
+    dipInfo.dipStandardAmount = getDipScore() * dipInfo.dipSettleScorePrice ?? 0
 
     return dipInfo
+  }
+
+  /**
+   * 推荐
+   */
+  toRecommend(rawParams: DipTodo, formatParams: DipTodo): TDipInfo[] {
+    const uniqueFunc = (arr: Array<any>, uniId: string) => {
+      const res = new Map()
+      return arr.filter((item) => !res.has(item[uniId]) && res.set(item[uniId], 1))
+    }
+
+    // 寻找核心 / 基层
+    const coreGroups: TDipInfo[] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'x']
+      .map((key) => {
+        // 获取缓存 key
+        const cacheKey = getCacheKey(formatParams.region, formatParams.version, formatParams.diagCode[0].substring(0, 4) + key)
+        const coreGroups = this.dipService.CACHE_CORE_GROUP_LIST[cacheKey] ?? []
+        const basicGroups = this.dipService.CACHE_BASIC_GROUP_LIST[cacheKey] ?? []
+
+        // 写入 dip 组类型
+        const groups = [...coreGroups, ...basicGroups].map((dip) => {
+          const oprnOprtCode = dip.oprnOprtCode?.split(/[\+\/]/)
+          dip.oprnOprtType = dip.oprnOprtType ?? this.getOprnOprtType(oprnOprtCode ?? '')
+
+          return dip
+        })
+
+        return JSON.parse(JSON.stringify(groups)) as TDipInfo[]
+      })
+      .flat()
+
+    // 寻找综合
+    const comprehensiveGroup: TDipInfo[] = ['', '00.2100', '00.3100', '00.5500'] // 分别尝试使用保守、诊断性操作、治疗性操作、手术进行入组
+      .map((key) => {
+        const formatParamsTemp: DipTodo = JSON.parse(JSON.stringify(formatParams))
+        formatParamsTemp.oprnOprtCode = [key]
+        const groups = this.intoComprehensiveGroup(rawParams, formatParamsTemp, this.dipService.CACHE_COMPREHENSIVE_GROUP_LIST)
+
+        return JSON.parse(JSON.stringify(uniqueFunc(groups, 'id'))) as TDipInfo[]
+      })
+      .flat()
+
+    // 结算
+    const recommendSettleList: TDipInfo[] = [...coreGroups, ...uniqueFunc(comprehensiveGroup, 'id')].map((dipInfo) => this.toSettle(rawParams, formatParams, dipInfo))
+
+    return recommendSettleList
   }
 
   /**

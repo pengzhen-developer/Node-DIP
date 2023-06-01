@@ -94,6 +94,8 @@ export type TDipMatch = {
   dipSettleScorePrice?: number
   /** 结算费用 */
   dipSettleAmount?: number
+  /** 标准费用 */
+  dipStandardAmount?: number
 }
 
 export type TDipUnMatch = {

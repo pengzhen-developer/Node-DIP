@@ -43,22 +43,13 @@ export class DipController {
   @ApiOperation({ tags: ['DIP'], description: '根据入参推荐' })
   @Post('recommend')
   async toRecommend(@Body() dipTodo: DipTodo): Promise<TDipInfo | TDipInfo[]> {
-    if (!Array.isArray(dipTodo.diagCode)) {
-      if (dipTodo.diagCode?.includes(',')) {
-        dipTodo.diagCode = dipTodo.diagCode?.split(',')
-      } else {
-        dipTodo.diagCode = dipTodo.diagCode?.split('+')
-      }
-    }
-
-    const dipTodoRecommendList = dipTodo.diagCode.map((item) => {
-      const dipTodoRecommend: DipTodo = JSON.parse(JSON.stringify(dipTodo))
-      dipTodoRecommend.diagCode = item
-
-      return dipTodoRecommend
-    })
-
-    const dipRecommendList = this.toSettle(dipTodoRecommendList)
+    // 刷新缓存
+    await this.dipService.onApplicationBootstrap()
+    // 格式化参数
+    const rawParams = Array.isArray(dipTodo) ? dipTodo : [dipTodo]
+    const formatParams = this.dipService.formatParams(rawParams)
+    // 推荐
+    const dipRecommendList = this.dipService.toRecommend(rawParams[0], formatParams[0])
 
     return dipRecommendList
   }

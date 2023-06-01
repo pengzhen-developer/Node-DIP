@@ -114,6 +114,25 @@ export class DipService implements OnApplicationBootstrap {
   }
 
   /**
+   * 分组推荐
+   */
+  toRecommend(rawParams: DipTodo, formatParams: DipTodo): TDipInfo[] | TDipInfo {
+    // 验证参数
+    if (this.validateParams(rawParams)?.length > 0) {
+      return this.setUnDipResult(EnumDipUnMatchCode.参数错误, `参数错误: ${this.validateParams(rawParams).join(',')}`, rawParams)
+    }
+    // 验证结算
+    if (!this.getConfigSettle(rawParams.region, rawParams.version, rawParams.hosCode)) {
+      return this.setUnDipResult(EnumDipUnMatchCode.结算失败, '参数错误: 未获取到当前医疗机构的结算配置，请检查！', rawParams)
+    }
+
+    // 尝试推荐
+    const dipRecommendList = this.RegionStrategyService.toRecommend(rawParams, formatParams)
+
+    return dipRecommendList
+  }
+
+  /**
    * 批量分组
    */
   toDipList(rawParams: DipTodo[], formatParams: DipTodo[]): TDipInfo[] {
