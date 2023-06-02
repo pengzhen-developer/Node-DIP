@@ -53,26 +53,18 @@ export class Region_420800 extends RegionBaseService {
         if (dipInfo.oprnOprtCode && dipInfo.oprnOprtCode?.indexOf('+') === -1) {
           const dipOperations = dipInfo.oprnOprtCode?.split('/') ?? []
 
-          // 如果手术操作只有 4 位码（细目），代表包含该细目的所有手术操作
-          if (dipInfo.oprnOprtCode?.length === 5 && dipOperations.some((item) => (formatParams.oprnOprtCode as string[]).map((item) => item.substring(0, 5)).includes(item))) {
-            const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
-
-            dipInfoResult.oprnOprtCodeMatch = (formatParams.oprnOprtCode as string[]).filter((v) => dipOperations.some((o) => v.startsWith(o))) ?? []
-            dipInfoResult.oprnOprtCodeMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
-            dipInfoResult.oprnOprtCodeUnMatch = (formatParams.oprnOprtCode as string[]).filter((v) => dipOperations.some((o) => !v.startsWith(o))) ?? []
-            dipInfoResult.oprnOprtCodeUnMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeUnMatch)
-            dipInfoResult.oprnOprtType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
-
-            dipInfoList.push(dipInfoResult)
-          }
-
+          // 如果手术操作存在有 3、4 位码（亚目、细目），代表包含该亚目、细目的所有手术操作
           // 否则，代表必须等于该手术操作
-          else if (dipInfo.oprnOprtCode?.length !== 5 && dipOperations.some((item) => formatParams.oprnOprtCode?.includes(item))) {
+          if (
+            dipOperations.some((v) => {
+              return v.length < 7 ? (formatParams.oprnOprtCode as string[]).some((o) => o.startsWith(v)) : formatParams.oprnOprtCode?.includes(v)
+            })
+          ) {
             const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
 
-            dipInfoResult.oprnOprtCodeMatch = (formatParams.oprnOprtCode as string[]).filter((v) => dipOperations.includes(v)) ?? []
+            dipInfoResult.oprnOprtCodeMatch = (formatParams.oprnOprtCode as string[]).filter((v) => dipOperations.some((o) => (o.length < 7 ? v.startsWith(o) : v === o))) ?? []
             dipInfoResult.oprnOprtCodeMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
-            dipInfoResult.oprnOprtCodeUnMatch = (formatParams.oprnOprtCode as string[]).filter((v) => !dipOperations.includes(v)) ?? []
+            dipInfoResult.oprnOprtCodeUnMatch = (formatParams.oprnOprtCode as string[]).filter((v) => dipOperations.every((o) => (o.length < 7 ? !v.startsWith(o) : v !== o))) ?? []
             dipInfoResult.oprnOprtCodeUnMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeUnMatch)
             dipInfoResult.oprnOprtType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
 
@@ -82,23 +74,25 @@ export class Region_420800 extends RegionBaseService {
         // 2. 判定手术是否联合存在（组内手术操作存在 + 符号）
         else if (dipInfo.oprnOprtCode && dipInfo.oprnOprtCode?.indexOf('+') !== -1) {
           const dipOperations = dipInfo?.oprnOprtCode?.split('+') ?? []
+
+          // 如果手术操作存在有 3、4 位码（亚目、细目），代表包含该亚目、细目的所有手术操作
+          // 否则，代表必须等于该手术操作
           if (
-            dipOperations.every((item) => {
-              if (
-                // 任一 / 满足
-                (item.indexOf('/') !== -1 && item.split('/').some((item) => formatParams.oprnOprtCode?.includes(item))) ||
-                // 所有 + 满足
-                (item.indexOf('/') === -1 && formatParams.oprnOprtCode?.includes(item))
-              ) {
-                return true
+            dipOperations.every((v) => {
+              if (v.indexOf('/') === -1) {
+                return v.length < 7 ? (formatParams.oprnOprtCode as string[]).some((o) => o.startsWith(v)) : formatParams.oprnOprtCode?.includes(v)
+              } else if (v.indexOf('/') !== -1) {
+                return v.split('/').some((v) => (v.length < 7 ? (formatParams.oprnOprtCode as string[]).some((o) => o.startsWith(v)) : formatParams.oprnOprtCode?.includes(v)))
               }
             })
           ) {
             const dipOperationsSplitArray = dipOperations.map((item) => item.split('/'))?.flat()
             const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
-            dipInfoResult.oprnOprtCodeMatch = (formatParams.oprnOprtCode as string[]).filter((v) => dipOperationsSplitArray.includes(v)) ?? []
+            dipInfoResult.oprnOprtCodeMatch =
+              (formatParams.oprnOprtCode as string[]).filter((v) => dipOperationsSplitArray.some((o) => (o.length < 7 ? v.startsWith(o) : v === o))) ?? []
             dipInfoResult.oprnOprtCodeMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
-            dipInfoResult.oprnOprtCodeUnMatch = (formatParams.oprnOprtCode as string[]).filter((v) => !dipOperationsSplitArray.includes(v)) ?? []
+            dipInfoResult.oprnOprtCodeUnMatch =
+              (formatParams.oprnOprtCode as string[]).filter((v) => dipOperationsSplitArray.every((o) => (o.length < 7 ? !v.startsWith(o) : v !== o))) ?? []
             dipInfoResult.oprnOprtCodeUnMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeUnMatch)
             dipInfoResult.oprnOprtType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
 
