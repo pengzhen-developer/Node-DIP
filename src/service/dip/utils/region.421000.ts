@@ -168,11 +168,6 @@ export class Region_421000 extends RegionBaseService {
   chooseUniqueGroupByDipType(rawParams: DipTodo, formatParams: DipTodo, dipInfoList: TDipInfo[]): TDipInfo[] {
     let chooseGroupByType: TDipInfo[] = []
 
-    const operationLevel = super.getOprnOprtType(formatParams.oprnOprtCode)
-
-    // 优先匹配和病例的操作最大类型匹配的核心 -> 综合
-    // 其次匹配低于病例的操作最大类型匹配的核心 -> 综合
-
     const chooseList = [
       {
         tooltip: '核心: 相关手术',
