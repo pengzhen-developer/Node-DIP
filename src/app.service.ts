@@ -171,7 +171,15 @@ export class AppService implements OnModuleInit {
 
       CACHE[`CACHE_IMP_ICD9`][cacheKeyIMP] = icd9
       CACHE[`CACHE_CONTENTS_ICD9_${icd9.fromVersion}`][cacheKeyFromVersion] = icd9
-      CACHE[`CACHE_CONTENTS_ICD9_${icd9.toVersion}`][cacheKeyToVersion] = icd9
+
+      if (CACHE[`CACHE_CONTENTS_ICD9_${icd9.toVersion}`][cacheKeyToVersion]) {
+        // 判断是否更符合，更符合则覆盖
+        if (icd9.fromCode === icd9.toCode) {
+          CACHE[`CACHE_CONTENTS_ICD9_${icd9.toVersion}`][cacheKeyToVersion] = icd9
+        }
+      } else {
+        CACHE[`CACHE_CONTENTS_ICD9_${icd9.toVersion}`][cacheKeyToVersion] = icd9
+      }
     })
 
     for (const key in CACHE) {
