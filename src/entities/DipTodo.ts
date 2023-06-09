@@ -36,6 +36,16 @@ export class DipTodo {
   @Column('varchar', { name: 'in_hospital_date', nullable: true, comment: '入院日期', length: 30 })
   inHospitalDate?: string | null
 
+  /** 出院日期 */
+  @ApiProperty()
+  @Column('varchar', { name: 'out_hospital_date', nullable: true, comment: '出院日期', length: 30 })
+  outHospitalDate?: string | null
+
+  /** 离院方式 */
+  @ApiProperty()
+  @Column('varchar', { name: 'dscg_way', nullable: true, comment: '离院方式', length: 30 })
+  dscgWay?: string | null
+
   /** 病例总费用 */
   @ApiProperty()
   @Column('decimal', { name: 'sum_amount', nullable: true, comment: '总费用', precision: 12, scale: 4 })

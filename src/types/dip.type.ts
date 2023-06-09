@@ -154,11 +154,23 @@ export enum EnumInsuranceType {
 }
 
 /**
+ * 离院方式
+ */
+export enum EnumDscgWay {
+  医嘱离院 = '医嘱离院',
+  医嘱转院 = '医嘱转院',
+  医嘱转社区卫生服务机构 = '医嘱转社区卫生服务机构/乡镇卫生院',
+  非医嘱离院 = '非医嘱离院',
+  死亡 = '死亡',
+  其他 = '其他'
+}
+
+/**
  * cc / mcc
  */
 export enum EnumCcMcc {
-  cc = 'cc',
-  mcc = 'mcc'
+  CC = 'cc',
+  MCC = 'mcc'
 }
 
 /**

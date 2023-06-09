@@ -12,6 +12,7 @@ import { Region_420900_2022 } from './region.420900.2022'
 import { Region_421000_2021 } from './region.421000.2021'
 import { Region_421000_2022 } from './region.421000.2022'
 import { Region_421000_2023 } from './region.421000.2023'
+import { Region_421200_2023 } from './region.421200.2023'
 
 @Injectable()
 export class RegionStrategyService implements IRegionStrategy {
@@ -24,7 +25,8 @@ export class RegionStrategyService implements IRegionStrategy {
     private readonly Region_420900_2022: Region_420900_2022,
     private readonly Region_421000_2021: Region_421000_2021,
     private readonly Region_421000_2022: Region_421000_2022,
-    private readonly Region_421000_2023: Region_421000_2023
+    private readonly Region_421000_2023: Region_421000_2023,
+    private readonly Region_421200_2023: Region_421200_2023
   ) {}
   dipService: DipService
 
@@ -38,7 +40,8 @@ export class RegionStrategyService implements IRegionStrategy {
       [getCacheKey(EnumRegion.孝感市, '2022')]: this.Region_420900_2022,
       [getCacheKey(EnumRegion.荆州市, '2021')]: this.Region_421000_2021,
       [getCacheKey(EnumRegion.荆州市, '2022')]: this.Region_421000_2022,
-      [getCacheKey(EnumRegion.荆州市, '2023')]: this.Region_421000_2023
+      [getCacheKey(EnumRegion.荆州市, '2023')]: this.Region_421000_2023,
+      [getCacheKey(EnumRegion.咸宁市, '2023')]: this.Region_421200_2023
     }
 
     const { region, version } = params
