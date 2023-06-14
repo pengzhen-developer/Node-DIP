@@ -1,6 +1,6 @@
 import { CACHE_MANAGER, Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { Not, Repository } from 'typeorm'
 import { Cache } from 'cache-manager'
 import { getCacheKey } from './utils'
 import { DipContents } from './entities/DipContents'
@@ -122,7 +122,7 @@ export class AppService implements OnModuleInit {
     const configFactorList = await this.configFactorRepository.find()
 
     configFactorList.forEach((configFactor) => {
-      const cacheKey = getCacheKey(configFactor.region, configFactor.version, configFactor.hospitalCode)
+      const cacheKey = getCacheKey(configFactor.region, configFactor.version, configFactor.month, configFactor.insuplcAdmdvs, configFactor.hospitalCode)
 
       CACHE_DIP_CONFIG_SETTLE[cacheKey] = configFactor
     })
@@ -217,7 +217,7 @@ export class AppService implements OnModuleInit {
   private async cacheDipConfigCcMcc() {
     const CACHE_DIP_CONFIG_CC_MCC = {}
 
-    const configCcMccList = await this.configCcMccRepository.find()
+    const configCcMccList = await this.configCcMccRepository.find({ where: { isActive: 'enable' } })
 
     configCcMccList.forEach((configCcMcc) => {
       const cacheKey = getCacheKey(configCcMcc.region, configCcMcc.version, configCcMcc.diagCode)
@@ -233,7 +233,7 @@ export class AppService implements OnModuleInit {
   private async cacheDipConfigExcludeCcMcc() {
     const CACHE_DIP_CONFIG_EXCLUDE_CC_MCC = {}
 
-    const configExcludeCcMccList = await this.configExcludeCcMccRepository.find()
+    const configExcludeCcMccList = await this.configExcludeCcMccRepository.find({ where: { isActive: 'enable' } })
 
     configExcludeCcMccList.forEach((configExcludeCcMcc) => {
       const cacheKey = getCacheKey(configExcludeCcMcc.region, configExcludeCcMcc.version, configExcludeCcMcc.exclude)

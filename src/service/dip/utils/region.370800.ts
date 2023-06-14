@@ -1,23 +1,15 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common'
 import { DipTodo } from 'src/entities/DipTodo'
-import {
-  EnumDipType,
-  EnumOprnOprtType,
-  TDipContents,
-  TDipInfo,
-  IRegionStrategy,
-  EnumInsuranceType,
-  EnumDeviation,
-  TDipContentsSupplement,
-  EnumCcMcc,
-  EnumDscgWay
-} from 'src/types/dip.type'
-import { getAge, getCacheKey } from 'src/utils'
-import { DipService } from './../dip.service'
+import { TDipInfo, TDipContents, EnumDipType, EnumOprnOprtType, EnumCcMcc, EnumDeviation, EnumInsuranceType, TDipContentsSupplement, EnumDscgWay } from 'src/types/dip.type'
+import { getCacheKey } from 'src/utils'
+import { DipService } from '../dip.service'
+import { RegionBaseService } from './region.base.service'
 
 @Injectable()
-export class RegionBaseService implements IRegionStrategy {
-  constructor(@Inject(forwardRef(() => DipService)) public readonly dipService: DipService) {}
+export class Region_370800 extends RegionBaseService {
+  constructor(@Inject(forwardRef(() => DipService)) public readonly dipService: DipService) {
+    super(dipService)
+  }
 
   /**
    * 分组
@@ -33,9 +25,10 @@ export class RegionBaseService implements IRegionStrategy {
     basicGroups = this.intoSupplementGroup(rawParams, formatParams, this.dipService.CACHE_DIP_CONTENTS_SUPPLEMENT_LIST, basicGroups)
     comprehensiveGroup = this.intoSupplementGroup(rawParams, formatParams, this.dipService.CACHE_DIP_CONTENTS_SUPPLEMENT_LIST, comprehensiveGroup)
     // 选定组
-    decideGroups = this.chooseCoreGroupByMatchQuantity(rawParams, formatParams, [...coreGroups])
-    decideGroups = this.chooseCoreGroupByAbsoluteFee(rawParams, formatParams, [...decideGroups])
+    decideGroups = this.chooseCoreGroupByMajorOprnOprtCode(rawParams, formatParams, [...coreGroups])
+    decideGroups = this.chooseCoreGroupByMatchQuantity(rawParams, formatParams, [...decideGroups])
     decideGroups = this.chooseUniqueGroupByDipType(rawParams, formatParams, [...decideGroups, ...basicGroups, ...comprehensiveGroup])
+    decideGroups = this.chooseCoreGroupByAbsoluteFee(rawParams, formatParams, [...decideGroups])
 
     return decideGroups[0]
   }
@@ -80,8 +73,10 @@ export class RegionBaseService implements IRegionStrategy {
 
     /** 获取偏差系数和偏差类型 */
     const getDipSettleFactorDeviation = () => {
+      // 济宁：偏差病例，根据支付标准计算
       const sumAmount = rawParams.sumAmount ?? 0
       const dipAvgAmount = getDipAvgAmount()
+      const dipStandardAmount = getDipScore() * getDipSettleScorePrice()
 
       if (dipAvgAmount === 0) {
         dipInfo.dipSettleDeviation = EnumDeviation.正常倍率
@@ -109,9 +104,15 @@ export class RegionBaseService implements IRegionStrategy {
 
     /** 获取结算分值 */
     const getDipSettleScore = () => {
-      const hospitalFactor = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup : configSettle.factorHospital
+      const hospitalFactor = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup * configSettle.factorHospital : configSettle.factorHospital
       const supplementFactor = dipInfo.dipSupplementName ? dipInfo.dipSupplementFactor : 1
-      return dipInfo.dipScore * dipInfo.dipSettleFactorDeviation * hospitalFactor * supplementFactor
+
+      // 济宁：偏差病例，不经医疗机构调整
+      if (dipInfo.dipSettleDeviation === EnumDeviation.正常倍率) {
+        return dipInfo.dipScore * hospitalFactor * supplementFactor
+      } else {
+        return dipInfo.dipScore * dipInfo.dipSettleFactorDeviation * supplementFactor
+      }
     }
 
     /** 获取基准分值（考虑辅助目录和基层） */
@@ -205,62 +206,37 @@ export class RegionBaseService implements IRegionStrategy {
       for (let i = 0; i < dipList.length; i++) {
         const dipInfo = dipList[i]
 
-        // 1. 判定手术是否单一存在
-        if (dipInfo.oprnOprtCode && dipInfo.oprnOprtCode.indexOf('+') === -1) {
-          const dipOperations = dipInfo.oprnOprtCode?.split('/') ?? []
+        // 济宁：必须满足全部手术及操作
+        const dipOperations = dipInfo.oprnOprtCode?.split(',') ?? []
 
-          if (dipOperations.some((item) => formatParams.oprnOprtCode.includes(item))) {
-            const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
+        if (dipOperations.length > 0 && dipOperations.every((item) => formatParams.oprnOprtCode.includes(item))) {
+          const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
 
-            dipInfoResult.oprnOprtCodeMatch = (formatParams.oprnOprtCode as string[]).filter((v) => dipOperations.includes(v)) ?? []
-            dipInfoResult.oprnOprtCodeMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
-            dipInfoResult.oprnOprtCodeUnMatch = (formatParams.oprnOprtCode as string[]).filter((v) => !dipOperations.includes(v)) ?? []
-            dipInfoResult.oprnOprtCodeUnMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeUnMatch)
-            dipInfoResult.oprnOprtType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
+          dipInfoResult.oprnOprtCodeMatch = (formatParams.oprnOprtCode as string[]).filter((v) => dipOperations.includes(v)) ?? []
+          dipInfoResult.oprnOprtCodeMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
+          dipInfoResult.oprnOprtCodeUnMatch = (formatParams.oprnOprtCode as string[]).filter((v) => !dipOperations.includes(v)) ?? []
+          dipInfoResult.oprnOprtCodeUnMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeUnMatch)
+          dipInfoResult.oprnOprtType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
 
-            dipInfoList.push(dipInfoResult)
-          }
-        }
-        // 2. 判定手术是否联合存在（组内手术操作存在 + 符号）
-        else if (dipInfo.oprnOprtCode && dipInfo.oprnOprtCode.indexOf('+') !== -1) {
-          const dipOperations = dipInfo?.oprnOprtCode?.split('+') ?? []
-          if (
-            dipOperations.every((item) => {
-              if (
-                // 任一 / 满足
-                (item.indexOf('/') !== -1 && item.split('/').some((item) => formatParams.oprnOprtCode.includes(item))) ||
-                // 所有 + 满足
-                (item.indexOf('/') === -1 && formatParams.oprnOprtCode.includes(item))
-              ) {
-                return true
-              }
-            })
-          ) {
-            const dipOperationsSplitArray = dipOperations.map((item) => item.split('/'))?.flat()
-            const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
-            dipInfoResult.oprnOprtCodeMatch = (formatParams.oprnOprtCode as string[]).filter((v) => dipOperationsSplitArray.includes(v)) ?? []
-            dipInfoResult.oprnOprtCodeMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
-            dipInfoResult.oprnOprtCodeUnMatch = (formatParams.oprnOprtCode as string[]).filter((v) => !dipOperationsSplitArray.includes(v)) ?? []
-            dipInfoResult.oprnOprtCodeUnMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeUnMatch)
-            dipInfoResult.oprnOprtType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
-
-            dipInfoList.push(dipInfoResult)
-          }
+          dipInfoList.push(dipInfoResult)
         }
       }
     }
 
     // 保守治疗组
     if (dipInfoList.length === 0 && this.getOprnOprtType(formatParams.oprnOprtCode) === EnumOprnOprtType.保守治疗) {
-      const dipInfo = dipList.find((item) => !item.oprnOprtCode)
+      const tempDipList = dipList.filter((item) => !item.oprnOprtCode)
 
-      if (dipInfo) {
-        const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
-        dipInfoResult.oprnOprtCodeMatch = []
-        dipInfoResult.oprnOprtCodeUnMatch = formatParams.oprnOprtCode as string[]
-        dipInfoResult.oprnOprtType = EnumOprnOprtType.保守治疗
+      if (tempDipList.length) {
+        const dipInfoResult = JSON.parse(JSON.stringify(tempDipList)) as TDipInfo[]
 
-        dipInfoList.push(dipInfoResult)
+        dipInfoResult.map((dipInfoResult) => {
+          dipInfoResult.oprnOprtCodeMatch = []
+          dipInfoResult.oprnOprtCodeUnMatch = formatParams.oprnOprtCode as string[]
+          dipInfoResult.oprnOprtType = EnumOprnOprtType.保守治疗
+        })
+
+        dipInfoList.push(...dipInfoResult)
       }
     }
 
@@ -285,6 +261,7 @@ export class RegionBaseService implements IRegionStrategy {
   intoComprehensiveGroup(rawParams: DipTodo, formatParams: DipTodo, dipContentList: TDipContents): TDipInfo[] {
     const dipInfoList: TDipInfo[] = []
     const operationType = this.getOprnOprtType(formatParams.oprnOprtCode)
+    const operationLevel = this.getOprnOprtLevel(formatParams.oprnOprtCode[0]) ?? 1
 
     // 从诊断亚目开始，入精确综合组
     for (let i = 3; i > 0; i--) {
@@ -292,13 +269,17 @@ export class RegionBaseService implements IRegionStrategy {
       const cacheKey = getCacheKey(formatParams.region, formatParams.version, formatParams.diagCode[0].substring(0, i))
       const dipList = dipContentList[cacheKey] ?? []
 
-      const dipInfo = dipList.find((dip) => dip.oprnOprtType === operationType)
+      const dipInfo = dipList.filter((dip) => dip.oprnOprtType === operationType)
 
-      if (dipInfo) {
-        const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
-        dipInfoResult.oprnOprtCodeMatch = []
-        dipInfoResult.oprnOprtCodeUnMatch = formatParams.oprnOprtCode as string[]
-        dipInfoList.push(dipInfoResult)
+      if (dipInfo.length) {
+        const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo[]
+
+        dipInfoResult.map((dipInfoResult) => {
+          dipInfoResult.oprnOprtCodeMatch = []
+          dipInfoResult.oprnOprtCodeUnMatch = formatParams.oprnOprtCode as string[]
+        })
+
+        dipInfoList.push(...dipInfoResult)
 
         break
       }
@@ -331,18 +312,38 @@ export class RegionBaseService implements IRegionStrategy {
           // 右侧包含 => A00-C50 => C50
           (p_0_1 === range_right_0_1 && p_0_1 > range_left_0_1 && p_1_3 <= range_right_1_3)
         ) {
-          const dipInfo = dipContentList[key].find((group) => group.oprnOprtType === operationType)
-          if (dipInfo) {
-            const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
-            dipInfoResult.oprnOprtCodeMatch = []
-            dipInfoResult.oprnOprtCodeUnMatch = formatParams.oprnOprtCode as string[]
+          const dipInfo = dipContentList[key].filter((group) => group.oprnOprtType === operationType)
 
-            dipInfoList.push(dipInfoResult)
+          if (dipInfo.length) {
+            const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo[]
+
+            dipInfoResult.map((dipInfoResult) => {
+              dipInfoResult.oprnOprtCodeMatch = []
+              dipInfoResult.oprnOprtCodeUnMatch = formatParams.oprnOprtCode as string[]
+            })
+
+            dipInfoList.push(...dipInfoResult)
 
             break
           }
         }
       }
+    }
+
+    // 验证手术级别
+    if (dipInfoList.some((item) => item.dipName.includes('手术级别'))) {
+      const matchDipInfo = dipInfoList.reduce((p, c) => {
+        const pOperationLevel = p.dipCode.substring(p.dipCode.length - 1)
+        const cOperationLevel = c.dipCode.substring(p.dipCode.length - 1)
+        if (pOperationLevel <= operationLevel && (cOperationLevel > operationLevel || pOperationLevel >= cOperationLevel)) {
+          return p
+        } else {
+          return c
+        }
+      })
+
+      dipInfoList.splice(0, dipInfoList.length)
+      dipInfoList.push(matchDipInfo)
     }
 
     this.dipService.logger({
@@ -357,85 +358,62 @@ export class RegionBaseService implements IRegionStrategy {
    * 入辅助目录
    */
   intoSupplementGroup(rawParams: DipTodo, formatParams: DipTodo, dipContentsSupplementList: TDipContentsSupplement, dipInfoList: TDipInfo[]) {
-    dipInfoList.map((item) => {
-      const cacheKey = getCacheKey(item.region, item.version, item.dipCode)
-      const dipContentsSupplement = dipContentsSupplementList[cacheKey]
+    // 严重程度：
+    // 1: 轻度
+    // 2: 中度
+    // 3: 重度
+    // 4: 死亡
+    if (dipInfoList.some((item) => item.dipCode.includes('code') && item.dipName.includes('辅助目录'))) {
+      // 疾病级别 - 表达式关键要素
+      const $ExpressionCcMcc = this.dipService.CACHE_DIP_CONFIG_CC_MCC
+      const $ExpressionExcludeCcMcc = this.dipService.CACHE_DIP_CONFIG_EXCLUDE_CC_MCC
+      const $ExpressionMajorDiagCode = formatParams.diagCode.slice(0, 1) as string[]
+      const $ExpressionMinorDiagCode = formatParams.diagCode.slice(1) as string[]
 
-      if (dipContentsSupplement?.length > 0) {
-        // 主要诊断和其他诊断
-        const $ExpressionMajorDiagCode = formatParams.diagCode.slice(0, 1) as string[]
-        const $ExpressionMinorDiagCode = formatParams.diagCode.slice(1) as string[]
-        // 年龄要素
-        const { years: $ExpressionAgeYears, days: $ExpressionAgeDays } = getAge(new Date(rawParams.birthDate), new Date(rawParams.inHospitalDate))
-        const { years: $ExpressionAgeInYears, days: $ExpressionAgeInDays } = getAge(new Date(rawParams.inHospitalDate), new Date(rawParams.outHospitalDate))
-        // 肿瘤严重程度要素
-        const $ExpressionDiagCode = formatParams.diagCode
-        // 疾病严重程度
-        const $ExpressionCcMcc = this.dipService.CACHE_DIP_CONFIG_CC_MCC
-        const $ExpressionExcludeCcMcc = this.dipService.CACHE_DIP_CONFIG_EXCLUDE_CC_MCC
-
-        const isCcMcc = (type: 'CC' | 'MCC') => {
-          return $ExpressionMinorDiagCode.some((diagCode) => {
-            const ccMcc = $ExpressionCcMcc[getCacheKey('', '', diagCode)]
-            if (ccMcc && ccMcc.type === EnumCcMcc[type]) {
-              return ($ExpressionExcludeCcMcc[getCacheKey('', '', ccMcc.exclude)] ?? []).every((item) => item.diagCode !== $ExpressionMajorDiagCode[0])
-            }
-            return false
-          })
-        }
-
-        // 定义辅助目录命中规则
-        const $ExpressionFunc = {
-          ['年龄']: {
-            ['0-28天']: () => $ExpressionAgeYears === 0 && $ExpressionAgeDays >= 0 && $ExpressionAgeDays <= 28,
-            ['29天-1周岁']: () => $ExpressionAgeYears === 0 && $ExpressionAgeDays >= 29 && $ExpressionAgeDays <= 365,
-            ['1-6岁']: () => $ExpressionAgeYears >= 1 && $ExpressionAgeYears <= 6,
-            ['7-17岁']: () => $ExpressionAgeYears >= 7 && $ExpressionAgeYears <= 17,
-            ['66岁及以上']: () => $ExpressionAgeYears >= 66
-          },
-          ['肿瘤严重程度']: {
-            ['轻度I-A级']: () => $ExpressionAgeInYears === 0 || $ExpressionAgeInDays <= 3,
-            ['轻度I-B级']: () => () => $ExpressionAgeInYears > 0 || $ExpressionAgeInDays > 3,
-            ['中度II级']: () => isCcMcc('CC'),
-            ['重度III级']: () => isCcMcc('MCC'),
-            ['转移IV级']: () => false,
-            ['放疗V-A级']: () => false,
-            ['化疗V-B级']: () => false,
-            ['死亡VI-A级']: () => rawParams.dscgWay === EnumDscgWay.死亡 && ($ExpressionAgeInYears === 0 || $ExpressionAgeInDays <= 3),
-            ['死亡VI-B级']: () => rawParams.dscgWay === EnumDscgWay.死亡 && ($ExpressionAgeInYears > 0 || $ExpressionAgeInDays > 3)
-          },
-          ['疾病严重程度']: {
-            ['轻度I-A级']: () => $ExpressionAgeInYears === 0 || $ExpressionAgeInDays <= 3,
-            ['轻度I-B级']: () => $ExpressionAgeInYears > 0 || $ExpressionAgeInDays > 3,
-            ['中度II级']: () => isCcMcc('CC'),
-            ['重度III级']: () => isCcMcc('MCC'),
-            ['死亡IV-A级']: () => rawParams.dscgWay === EnumDscgWay.死亡 && ($ExpressionAgeInYears === 0 || $ExpressionAgeInDays <= 3),
-            ['死亡IV-B级']: () => rawParams.dscgWay === EnumDscgWay.死亡 && ($ExpressionAgeInYears > 0 || $ExpressionAgeInDays > 3)
+      const $IsCcMcc = (type: 'CC' | 'MCC') => {
+        return $ExpressionMinorDiagCode.some((diagCode) => {
+          const ccMcc = $ExpressionCcMcc[getCacheKey('', '', diagCode)]
+          if (ccMcc && ccMcc.type === EnumCcMcc[type]) {
+            return ($ExpressionExcludeCcMcc[getCacheKey('', '', ccMcc.exclude)] ?? []).every((item) => item.diagCode !== $ExpressionMajorDiagCode[0])
           }
-        }
-
-        // 执行辅助目录命中表达式
-        const dipContentsSupplementList = dipContentsSupplement.filter((item) => eval(item.dipSupplementExpression))
-        if (dipContentsSupplementList.length === 0) {
-          return item
-        }
-
-        // 选择分值最高的辅助目录
-        const dipSupplement = dipContentsSupplementList.reduce((p, c) => (p.dipSupplementFactor >= c.dipSupplementFactor ? p : c))
-
-        // 赋值辅助目录相关信息
-        item.dipSupplementType = dipSupplement.dipSupplementType
-        item.dipSupplementName = dipSupplement.dipSupplementName
-        item.dipSupplementScore = dipSupplement.dipSupplementScore
-        item.dipSupplementFactor = dipSupplement.dipSupplementFactor
-        item.dipSupplementAvgAmount = dipSupplement.dipSupplementAvgAmount
-        item.dipSupplementAvgInDays = dipSupplement.dipSupplementAvgInDays
+          return false
+        })
+      }
+      const $ExpressionIsDead = () => {
+        return rawParams.dscgWay === EnumDscgWay.死亡
       }
 
-      return item
-    })
+      if ($ExpressionIsDead() && dipInfoList.some((item) => item.dipCode.includes('code_4') && item.dipName.includes('辅助目录区分疾病_4'))) {
+        return dipInfoList
+          .filter((item) => item.dipCode.includes('code_4') && item.dipName.includes('辅助目录区分疾病_4'))
+          .concat(dipInfoList.filter((item) => !item.dipCode.includes('code') && !item.dipName.includes('辅助目录')))
+      } else if ($IsCcMcc('MCC') && dipInfoList.some((item) => item.dipCode.includes('code_3') && item.dipName.includes('辅助目录区分疾病_3'))) {
+        return dipInfoList
+          .filter((item) => item.dipCode.includes('code_3') && item.dipName.includes('辅助目录区分疾病_3'))
+          .concat(dipInfoList.filter((item) => !item.dipCode.includes('code') && !item.dipName.includes('辅助目录')))
+      } else if ($IsCcMcc('CC') && dipInfoList.some((item) => item.dipCode.includes('code_2') && item.dipName.includes('辅助目录区分疾病_2'))) {
+        return dipInfoList
+          .filter((item) => item.dipCode.includes('code_2') && item.dipName.includes('辅助目录区分疾病_2'))
+          .concat(dipInfoList.filter((item) => !item.dipCode.includes('code') && !item.dipName.includes('辅助目录')))
+      } else {
+        return dipInfoList
+          .filter((item) => item.dipCode.includes('code_1') && item.dipName.includes('辅助目录区分疾病_1'))
+          .concat(dipInfoList.filter((item) => !item.dipCode.includes('code') && !item.dipName.includes('辅助目录')))
+      }
+    }
 
     return dipInfoList
+  }
+
+  /**
+   * 根据主手术优先原则
+   */
+  chooseCoreGroupByMajorOprnOprtCode(rawParams: DipTodo, formatParams: DipTodo, dipInfoList: TDipInfo[]): TDipInfo[] {
+    if (dipInfoList.some((dipInfo) => dipInfo.dipCode.includes(formatParams.oprnOprtCode[0]))) {
+      return dipInfoList.filter((dipInfo) => dipInfo.dipCode.includes(formatParams.oprnOprtCode[0]))
+    } else {
+      return dipInfoList
+    }
   }
 
   /**
@@ -627,6 +605,31 @@ export class RegionBaseService implements IRegionStrategy {
       const cacheKey = getCacheKey(toVersion, oprnOprtCode)
 
       return this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtType ?? EnumOprnOprtType.保守治疗
+    }
+  }
+
+  /**
+   * 获取最大手术操作级别
+   */
+  public getOprnOprtLevel(oprnOprtCode, toVersion = 'YB_2.0'): string {
+    if (oprnOprtCode && oprnOprtCode.length === 0) {
+      return ''
+    }
+
+    if (Array.isArray(oprnOprtCode) && oprnOprtCode.length > 0) {
+      const temp = oprnOprtCode.reduce((p, c) => {
+        const cacheKeyP = getCacheKey(toVersion, p)
+        const cacheKeyC = getCacheKey(toVersion, c)
+
+        return this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKeyP]?.oprnOprtLevel >= this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKeyC]?.oprnOprtLevel ? p : c
+      })
+      const cacheKey = getCacheKey(toVersion, temp)
+
+      return this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtLevel ?? ''
+    } else {
+      const cacheKey = getCacheKey(toVersion, oprnOprtCode)
+
+      return this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtLevel ?? ''
     }
   }
 

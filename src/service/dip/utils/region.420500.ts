@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common'
 import { DipTodo } from 'src/entities/DipTodo'
-import { EnumDipType, EnumOprnOprtType, TDipContents, TDipInfo } from 'src/types/dip.type'
-import { getCacheKey } from 'src/utils'
+import { EnumCcMcc, EnumDipType, EnumDscgWay, EnumOprnOprtType, TDipContents, TDipContentsSupplement, TDipInfo } from 'src/types/dip.type'
+import { getAge, getCacheKey } from 'src/utils'
 import { DipService } from '../dip.service'
 import { RegionBaseService } from './region.base.service'
 
@@ -95,6 +95,108 @@ export class Region_420500 extends RegionBaseService {
 
   intoBasicGroups(rawParams: DipTodo, formatParams: DipTodo, dipContentList: TDipContents): TDipInfo[] {
     return this.intoCoreGroups(rawParams, formatParams, dipContentList)
+  }
+
+  intoSupplementGroup(rawParams: DipTodo, formatParams: DipTodo, dipContentsSupplementList: TDipContentsSupplement, dipInfoList: TDipInfo[]) {
+    dipInfoList.map((item) => {
+      const cacheKey = getCacheKey(item.region, item.version, item.dipCode)
+      const dipContentsSupplement = dipContentsSupplementList[cacheKey]
+
+      if (dipContentsSupplement?.length > 0) {
+        // 主要诊断和其他诊断
+        const $ExpressionMajorDiagCode = formatParams.diagCode.slice(0, 1) as string[]
+        const $ExpressionMinorDiagCode = formatParams.diagCode.slice(1) as string[]
+        // 年龄要素
+        const { years: $ExpressionAgeYears, days: $ExpressionAgeDays } = getAge(new Date(rawParams.birthDate), new Date(rawParams.inHospitalDate))
+        const { years: $ExpressionAgeInYears, days: $ExpressionAgeInDays } = getAge(new Date(rawParams.inHospitalDate), new Date(rawParams.outHospitalDate))
+        // 肿瘤严重程度要素
+        const $ExpressionDiagCode = formatParams.diagCode
+        // 疾病严重程度
+        const $ExpressionCcMcc = this.dipService.CACHE_DIP_CONFIG_CC_MCC
+        const $ExpressionExcludeCcMcc = this.dipService.CACHE_DIP_CONFIG_EXCLUDE_CC_MCC
+
+        const isCcMcc = (type: 'CC' | 'MCC') => {
+          return $ExpressionMinorDiagCode.some((diagCode) => {
+            const ccMcc = $ExpressionCcMcc[getCacheKey('', '', diagCode)]
+            if (ccMcc && ccMcc.type === EnumCcMcc[type]) {
+              return ($ExpressionExcludeCcMcc[getCacheKey('', '', ccMcc.exclude)] ?? []).every((item) => item.diagCode !== $ExpressionMajorDiagCode[0])
+            }
+            return false
+          })
+        }
+
+        // 定义辅助目录命中规则
+        const $ExpressionFunc = {
+          // ['年龄']: {
+          //   ['0-28天']: () => $ExpressionAgeYears === 0 && $ExpressionAgeDays >= 0 && $ExpressionAgeDays <= 28,
+          //   ['29天-1周岁']: () => $ExpressionAgeYears === 0 && $ExpressionAgeDays >= 29 && $ExpressionAgeDays <= 365,
+          //   ['1-6岁']: () => $ExpressionAgeYears >= 1 && $ExpressionAgeYears <= 6,
+          //   ['7-17岁']: () => $ExpressionAgeYears >= 7 && $ExpressionAgeYears <= 17,
+          //   ['66岁及以上']: () => $ExpressionAgeYears >= 66
+          // },
+          // ['肿瘤严重程度']: {
+          //   ['轻度I-A级']: () => $ExpressionAgeInYears === 0 || $ExpressionAgeInDays <= 3,
+          //   ['轻度I-B级']: () => () => $ExpressionAgeInYears > 0 || $ExpressionAgeInDays > 3,
+          //   ['中度II级']: () => isCcMcc('CC'),
+          //   ['重度III级']: () => isCcMcc('MCC'),
+          //   ['转移IV级']: () => false,
+          //   ['放疗V-A级']: () => false,
+          //   ['化疗V-B级']: () => false,
+          //   ['死亡VI-A级']: () => rawParams.dscgWay === EnumDscgWay.死亡 && ($ExpressionAgeInYears === 0 || $ExpressionAgeInDays <= 3),
+          //   ['死亡VI-B级']: () => rawParams.dscgWay === EnumDscgWay.死亡 && ($ExpressionAgeInYears > 0 || $ExpressionAgeInDays > 3)
+          // },
+          ['疾病严重程度']: {
+            ['轻度I-A级']: () => $ExpressionAgeInYears === 0 || $ExpressionAgeInDays <= 3,
+            ['轻度I-B级']: () => $ExpressionAgeInYears > 0 || $ExpressionAgeInDays > 3,
+            ['中度II级']: () => isCcMcc('CC'),
+            ['重度III级']: () => isCcMcc('MCC'),
+            ['死亡IV-A级']: () => rawParams.dscgWay === EnumDscgWay.死亡 && ($ExpressionAgeInYears === 0 || $ExpressionAgeInDays <= 3),
+            ['死亡IV-B级']: () => rawParams.dscgWay === EnumDscgWay.死亡 && ($ExpressionAgeInYears > 0 || $ExpressionAgeInDays > 3)
+          },
+          ['地方特征']: {
+            ['肺结核耐药']: () =>
+              [
+                'A15.000x010',
+                'A15.000x012',
+                'A15.000x014',
+                'A15.000x016',
+                'A15.000x020',
+                'A15.000x024',
+                'A15.000x026',
+                'A15.100x002',
+                'A15.100x003',
+                'A15.100x005',
+                'A15.100x007',
+                'A15.100x008',
+                'A15.100x009',
+                'A15.100x010'
+              ].includes($ExpressionMajorDiagCode[0]),
+            ['血液类肿瘤化疗']: () => false
+          }
+        }
+
+        // 执行辅助目录命中表达式
+        const dipContentsSupplementList = dipContentsSupplement.filter((item) => eval(item.dipSupplementExpression))
+        if (dipContentsSupplementList.length === 0) {
+          return item
+        }
+
+        // 选择分值最高的辅助目录
+        const dipSupplement = dipContentsSupplementList.reduce((p, c) => (p.dipSupplementFactor >= c.dipSupplementFactor ? p : c))
+
+        // 赋值辅助目录相关信息
+        item.dipSupplementType = dipSupplement.dipSupplementType
+        item.dipSupplementName = dipSupplement.dipSupplementName
+        item.dipSupplementScore = dipSupplement.dipSupplementScore
+        item.dipSupplementFactor = dipSupplement.dipSupplementFactor
+        item.dipSupplementAvgAmount = dipSupplement.dipSupplementAvgAmount
+        item.dipSupplementAvgInDays = dipSupplement.dipSupplementAvgInDays
+      }
+
+      return item
+    })
+
+    return dipInfoList
   }
 
   chooseUniqueGroupByDipType(rawParams: DipTodo, formatParams: DipTodo, dipInfoList: TDipInfo[]): TDipInfo[] {

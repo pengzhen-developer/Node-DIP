@@ -11,6 +11,12 @@ export class DipConfigSettle {
   @Column('varchar', { name: 'version', nullable: true, comment: '医保统筹区版本', length: 6 })
   version: string | null
 
+  @Column('varchar', { name: 'month', nullable: true, comment: '医保统筹区按月标识', length: 6 })
+  month: number | null
+
+  @Column('varchar', { name: 'insuplc_admdvs', nullable: true, comment: '参保地行政区划（省内异地：患者参保地不等于医保统筹区）', length: 6 })
+  insuplcAdmdvs: string | null
+
   @Column('varchar', { name: 'hospital_code', nullable: true, comment: '医疗机构编码', length: 30 })
   hospitalCode: string | null
 

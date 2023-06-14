@@ -80,7 +80,7 @@ export class DipService implements OnApplicationBootstrap {
       return this.setUnDipResult(EnumDipUnMatchCode.参数错误, `参数错误: ${this.validateParams(rawParams).join(',')}`, rawParams)
     }
     // 验证结算
-    if (!this.getConfigSettle(rawParams.region, rawParams.version, rawParams.hosCode)) {
+    if (!this.getConfigSettle(rawParams)) {
       return this.setUnDipResult(EnumDipUnMatchCode.结算失败, '参数错误: 未获取到当前医疗机构的结算配置，请检查！', rawParams)
     }
 
@@ -122,7 +122,7 @@ export class DipService implements OnApplicationBootstrap {
       return this.setUnDipResult(EnumDipUnMatchCode.参数错误, `参数错误: ${this.validateParams(rawParams).join(',')}`, rawParams)
     }
     // 验证结算
-    if (!this.getConfigSettle(rawParams.region, rawParams.version, rawParams.hosCode)) {
+    if (!this.getConfigSettle(rawParams)) {
       return this.setUnDipResult(EnumDipUnMatchCode.结算失败, '参数错误: 未获取到当前医疗机构的结算配置，请检查！', rawParams)
     }
 
@@ -284,8 +284,19 @@ export class DipService implements OnApplicationBootstrap {
   /**
    * 获取结算配置信息
    */
-  public getConfigSettle(region: string, version: string, hosCode: string): DipConfigSettle {
-    return this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(region, version, hosCode)]
+  public getConfigSettle(rawParams: DipTodo): DipConfigSettle {
+    let configSettle1
+    let configSettle2
+
+    try {
+      // 保底结算配置
+      configSettle1 = this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(rawParams.region, rawParams.version, '', '', rawParams.hosCode)]
+      // 适用于国新健康(存在按结算时间配置 & 存在按异地结算点值配置)
+      const month = new Date(rawParams.settleDate).getUTCMonth() + 1
+      configSettle2 = this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(rawParams.region, rawParams.version, month, rawParams.insuplcAdmdvs, rawParams.hosCode)]
+    } finally {
+      return configSettle2 ?? configSettle1
+    }
   }
 
   /**
