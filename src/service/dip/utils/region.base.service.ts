@@ -621,12 +621,14 @@ export class RegionBaseService implements IRegionStrategy {
           : c
       })
       const cacheKey = getCacheKey(toVersion, temp)
+      const oprnOprtType = this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtType
 
-      return this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtType ?? EnumOprnOprtType.保守治疗
+      return (oprnOprtType === EnumOprnOprtType.介入治疗 ? EnumOprnOprtType.相关手术 : oprnOprtType) ?? EnumOprnOprtType.保守治疗
     } else {
       const cacheKey = getCacheKey(toVersion, oprnOprtCode)
+      const oprnOprtType = this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtType
 
-      return this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtType ?? EnumOprnOprtType.保守治疗
+      return (oprnOprtType === EnumOprnOprtType.介入治疗 ? EnumOprnOprtType.相关手术 : oprnOprtType) ?? EnumOprnOprtType.保守治疗
     }
   }
 
@@ -634,7 +636,7 @@ export class RegionBaseService implements IRegionStrategy {
    * 获取手术操作顺序码
    */
   public getOprnSort(oprnOprtCode) {
-    const sortArr = [EnumOprnOprtType.保守治疗, EnumOprnOprtType.诊断性操作, EnumOprnOprtType.治疗性操作, EnumOprnOprtType.相关手术]
+    const sortArr = [EnumOprnOprtType.保守治疗, EnumOprnOprtType.诊断性操作, EnumOprnOprtType.治疗性操作, EnumOprnOprtType.介入治疗, EnumOprnOprtType.相关手术]
 
     return sortArr.indexOf(oprnOprtCode)
   }

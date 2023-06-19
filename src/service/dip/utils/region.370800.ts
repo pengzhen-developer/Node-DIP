@@ -27,8 +27,9 @@ export class Region_370800 extends RegionBaseService {
     // 选定组
     decideGroups = this.chooseCoreGroupByMajorOprnOprtCode(rawParams, formatParams, [...coreGroups])
     decideGroups = this.chooseCoreGroupByMatchQuantity(rawParams, formatParams, [...decideGroups])
-    decideGroups = this.chooseUniqueGroupByDipType(rawParams, formatParams, [...decideGroups, ...basicGroups, ...comprehensiveGroup])
+    decideGroups = this.chooseCoreGroupByMajorOprnOprtType(rawParams, formatParams, [...decideGroups])
     decideGroups = this.chooseCoreGroupByAbsoluteFee(rawParams, formatParams, [...decideGroups])
+    decideGroups = this.chooseUniqueGroupByDipType(rawParams, formatParams, [...decideGroups, ...basicGroups, ...comprehensiveGroup])
 
     return decideGroups[0]
   }
@@ -39,21 +40,9 @@ export class Region_370800 extends RegionBaseService {
   toSettle(rawParams: DipTodo, formatParams: DipTodo, dipInfo: TDipInfo): TDipInfo {
     /** 结算系数 */
     const configSettle = this.dipService.getConfigSettle(rawParams)
-    // 平均费用
-    const configAvgAmount = this.dipService.getConfigAvgMount(
-      rawParams.region,
-      rawParams.version,
-      configSettle.hospitalLevel,
-      dipInfo.dipCode,
-      dipInfo.dipSupplementType,
-      dipInfo.dipSupplementName,
-      rawParams.insuranceType
-    )
 
     /** 模拟 DIP 均费 */
     const getDipAvgAmount = () => {
-      // 模拟均费 = 基准分值 * 均费调整系数【通过清算数据测算】
-
       /** 基准分值 */
       const dipScore = dipInfo.dipSupplementName ? dipInfo.dipSupplementScore * dipInfo.dipSupplementFactor : dipInfo.dipScore
 
@@ -68,15 +57,13 @@ export class Region_370800 extends RegionBaseService {
           : configSettle.factorResidentAvgAmount
 
       // 单一病组均费【通过清算数据测算】 => 模拟均费
-      return configAvgAmount?.dipAvgAmount ?? dipScore * dipFactorAvgAmount
+      return dipScore * dipFactorAvgAmount
     }
 
     /** 获取偏差系数和偏差类型 */
     const getDipSettleFactorDeviation = () => {
-      // 济宁：偏差病例，根据支付标准计算
       const sumAmount = rawParams.sumAmount ?? 0
       const dipAvgAmount = getDipAvgAmount()
-      const dipStandardAmount = getDipScore() * getDipSettleScorePrice()
 
       if (dipAvgAmount === 0) {
         dipInfo.dipSettleDeviation = EnumDeviation.正常倍率
@@ -104,7 +91,7 @@ export class Region_370800 extends RegionBaseService {
 
     /** 获取结算分值 */
     const getDipSettleScore = () => {
-      const hospitalFactor = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup * configSettle.factorHospital : configSettle.factorHospital
+      const hospitalFactor = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup : configSettle.factorHospital
       const supplementFactor = dipInfo.dipSupplementName ? dipInfo.dipSupplementFactor : 1
 
       // 济宁：偏差病例，不经医疗机构调整
@@ -138,8 +125,8 @@ export class Region_370800 extends RegionBaseService {
 
     dipInfo.dipSettleScore = getDipSettleScore()
     dipInfo.dipSettleScorePrice = getDipSettleScorePrice()
-    dipInfo.dipSettleAmount = parseFloat(dipInfo.dipScore as any) === 0 ? rawParams.sumAmount : dipInfo.dipSettleScore * dipInfo.dipSettleScorePrice ?? 0
-    dipInfo.dipStandardAmount = getDipScore() * dipInfo.dipSettleScorePrice ?? 0
+    dipInfo.dipSettleAmount = parseFloat(dipInfo.dipScore as any) === 0 ? rawParams.sumAmount : getDipSettleScore() * getDipSettleScorePrice() ?? 0
+    dipInfo.dipStandardAmount = getDipScore() * getDipSettleScorePrice() ?? 0
 
     return dipInfo
   }
@@ -260,8 +247,7 @@ export class Region_370800 extends RegionBaseService {
    */
   intoComprehensiveGroup(rawParams: DipTodo, formatParams: DipTodo, dipContentList: TDipContents): TDipInfo[] {
     const dipInfoList: TDipInfo[] = []
-    const operationType = this.getOprnOprtType(formatParams.oprnOprtCode)
-    const operationLevel = this.getOprnOprtLevel(formatParams.oprnOprtCode[0]) ?? 1
+    const operationType = this.getOprnOprtType(formatParams.oprnOprtCode[0])
 
     // 从诊断亚目开始，入精确综合组
     for (let i = 3; i > 0; i--) {
@@ -332,18 +318,29 @@ export class Region_370800 extends RegionBaseService {
 
     // 验证手术级别
     if (dipInfoList.some((item) => item.dipName.includes('手术级别'))) {
-      const matchDipInfo = dipInfoList.reduce((p, c) => {
-        const pOperationLevel = p.dipCode.substring(p.dipCode.length - 1)
-        const cOperationLevel = c.dipCode.substring(p.dipCode.length - 1)
-        if (pOperationLevel <= operationLevel && (cOperationLevel > operationLevel || pOperationLevel >= cOperationLevel)) {
-          return p
+      const rawOperationLevel = parseInt(this.getOprnOprtLevel(formatParams.oprnOprtCode[0])) ?? 1
+
+      const matchDipInfo = dipInfoList.find((dipInfo) => {
+        const operationLevel = parseInt(dipInfo.dipCode.substring(dipInfo.dipCode.length - 1))
+
+        // 3、4 级手术及操作，归类为级别 3
+        // 2 级手术及操作，归类为级别 2
+        // 1 级手术及操作，归类为级别 2
+        if ((rawOperationLevel === 4 || rawOperationLevel === 3) && operationLevel === 3) {
+          return true
+        } else if (rawOperationLevel === 2 && operationLevel === 2) {
+          return true
+        } else if (rawOperationLevel === 1 && operationLevel === 1) {
+          return true
         } else {
-          return c
+          return false
         }
       })
 
-      dipInfoList.splice(0, dipInfoList.length)
-      dipInfoList.push(matchDipInfo)
+      if (matchDipInfo) {
+        dipInfoList.splice(0, dipInfoList.length)
+        dipInfoList.push(matchDipInfo)
+      }
     }
 
     this.dipService.logger({
@@ -406,11 +403,23 @@ export class Region_370800 extends RegionBaseService {
   }
 
   /**
-   * 根据主手术优先原则
+   * 根据主手术编码优先原则
    */
   chooseCoreGroupByMajorOprnOprtCode(rawParams: DipTodo, formatParams: DipTodo, dipInfoList: TDipInfo[]): TDipInfo[] {
     if (dipInfoList.some((dipInfo) => dipInfo.dipCode.includes(formatParams.oprnOprtCode[0]))) {
       return dipInfoList.filter((dipInfo) => dipInfo.dipCode.includes(formatParams.oprnOprtCode[0]))
+    } else {
+      return dipInfoList
+    }
+  }
+
+  /**
+   * 根据主手术类型优先原则
+   */
+  chooseCoreGroupByMajorOprnOprtType(rawParams: DipTodo, formatParams: DipTodo, dipInfoList: TDipInfo[]): TDipInfo[] {
+    const majorOprnOprtType = this.getOprnOprtType(formatParams.oprnOprtCode[0])
+    if (dipInfoList.some((dipInfo) => dipInfo.oprnOprtCodeMatchType === majorOprnOprtType)) {
+      return dipInfoList.filter((dipInfo) => dipInfo.oprnOprtCodeMatchType === majorOprnOprtType)
     } else {
       return dipInfoList
     }
@@ -450,48 +459,35 @@ export class Region_370800 extends RegionBaseService {
       return []
     }
 
+    /** 模拟 DIP 均费 */
+    const getDipAvgAmount = (dipInfo) => {
+      // 结算系数
+      const configSettle = this.dipService.getConfigSettle(rawParams)
+      /** 基准分值 */
+      const dipScore = dipInfo.dipSupplementName ? dipInfo.dipSupplementScore * dipInfo.dipSupplementFactor : dipInfo.dipScore
+
+      /** 均费调整系数 */
+      const dipFactorAvgAmount =
+        dipInfo.dipType === EnumDipType.基层
+          ? rawParams.insuranceType === EnumInsuranceType.职工
+            ? configSettle.factorBasicEmployeeAvgAmount * dipInfo.dipFactorBasicGroup
+            : configSettle.factorBasicResidentAvgAmount * dipInfo.dipFactorBasicGroup
+          : rawParams.insuranceType === EnumInsuranceType.职工
+          ? configSettle.factorEmployeeAvgAmount
+          : configSettle.factorResidentAvgAmount
+
+      // 单一病组均费【通过清算数据测算】 => 模拟均费
+      return dipScore * dipFactorAvgAmount
+    }
+
     // （均费与费用绝对值越小，优先级越高）
     const chooseGroupByAbsoluteFee = [
       dipInfoList.reduce((p, c) => {
-        // 结算系数
-        const configSettle = this.dipService.getConfigSettle(rawParams)
-        // 平均费用
-        const configPAvgAmount = this.dipService.getConfigAvgMount(
-          rawParams.region,
-          rawParams.version,
-          configSettle.hospitalLevel,
-          p.dipCode,
-          p.dipSupplementType,
-          p.dipSupplementName,
-          rawParams.insuranceType
-        )
-        const configCAvgAmount = this.dipService.getConfigAvgMount(
-          rawParams.region,
-          rawParams.version,
-          configSettle.hospitalLevel,
-          c.dipCode,
-          c.dipSupplementType,
-          c.dipSupplementName,
-          rawParams.insuranceType
-        )
-
         const sumAmount = rawParams.sumAmount ?? 0
-        const pDipAvgAmount =
-          configPAvgAmount?.dipAvgAmount ??
-          p.dipSupplementAvgAmount ??
-          p.dipAvgAmount ??
-          (rawParams.insuranceType === EnumInsuranceType.职工
-            ? configSettle.factorEmployeePrice * (p.dipSupplementScore ?? p.dipScore)
-            : configSettle.factorResidentPrice * (p.dipSupplementScore ?? p.dipScore))
-        const cDipAvgAmount =
-          configCAvgAmount?.dipAvgAmount ??
-          c.dipSupplementAvgAmount ??
-          c.dipAvgAmount ??
-          (rawParams.insuranceType === EnumInsuranceType.职工
-            ? configSettle.factorEmployeePrice * (c.dipSupplementScore ?? c.dipScore)
-            : configSettle.factorResidentPrice * (c.dipSupplementScore ?? c.dipScore))
+        const pDipAvgAmount = getDipAvgAmount(p)
+        const cDipAvgAmount = getDipAvgAmount(c)
 
-        if (Math.abs(pDipAvgAmount - sumAmount) <= Math.abs(cDipAvgAmount - sumAmount)) {
+        if (Math.abs(sumAmount - pDipAvgAmount) < Math.abs(sumAmount - cDipAvgAmount)) {
           return p
         } else {
           return c
@@ -584,7 +580,7 @@ export class Region_370800 extends RegionBaseService {
    * 获取最大手术操作类型
    */
   public getOprnOprtType(oprnOprtCode, toVersion = 'YB_2.0'): string {
-    if (oprnOprtCode.length === 0) {
+    if (!oprnOprtCode) {
       return EnumOprnOprtType.保守治疗
     }
 
@@ -599,12 +595,14 @@ export class Region_370800 extends RegionBaseService {
           : c
       })
       const cacheKey = getCacheKey(toVersion, temp)
+      const oprnOprtType = this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtType
 
-      return this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtType ?? EnumOprnOprtType.保守治疗
+      return (oprnOprtType === EnumOprnOprtType.介入治疗 ? EnumOprnOprtType.治疗性操作 : oprnOprtType) ?? EnumOprnOprtType.保守治疗
     } else {
       const cacheKey = getCacheKey(toVersion, oprnOprtCode)
+      const oprnOprtType = this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtType
 
-      return this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtType ?? EnumOprnOprtType.保守治疗
+      return (oprnOprtType === EnumOprnOprtType.介入治疗 ? EnumOprnOprtType.治疗性操作 : oprnOprtType) ?? EnumOprnOprtType.保守治疗
     }
   }
 
@@ -636,10 +634,10 @@ export class Region_370800 extends RegionBaseService {
   /**
    * 获取手术操作顺序码
    */
-  public getOprnSort(oprnOprtCode) {
-    const sortArr = [EnumOprnOprtType.保守治疗, EnumOprnOprtType.诊断性操作, EnumOprnOprtType.治疗性操作, EnumOprnOprtType.相关手术]
+  public getOprnSort(oprnOprtType) {
+    const sortArr = [EnumOprnOprtType.保守治疗, EnumOprnOprtType.诊断性操作, EnumOprnOprtType.治疗性操作, EnumOprnOprtType.介入治疗, EnumOprnOprtType.相关手术]
 
-    return sortArr.indexOf(oprnOprtCode)
+    return sortArr.indexOf(oprnOprtType)
   }
 
   /**
