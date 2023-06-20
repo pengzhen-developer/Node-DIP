@@ -127,24 +127,24 @@ export class Region_420500 extends RegionBaseService {
 
         // 定义辅助目录命中规则
         const $ExpressionFunc = {
-          // ['年龄']: {
-          //   ['0-28天']: () => $ExpressionAgeYears === 0 && $ExpressionAgeDays >= 0 && $ExpressionAgeDays <= 28,
-          //   ['29天-1周岁']: () => $ExpressionAgeYears === 0 && $ExpressionAgeDays >= 29 && $ExpressionAgeDays <= 365,
-          //   ['1-6岁']: () => $ExpressionAgeYears >= 1 && $ExpressionAgeYears <= 6,
-          //   ['7-17岁']: () => $ExpressionAgeYears >= 7 && $ExpressionAgeYears <= 17,
-          //   ['66岁及以上']: () => $ExpressionAgeYears >= 66
-          // },
-          // ['肿瘤严重程度']: {
-          //   ['轻度I-A级']: () => $ExpressionAgeInYears === 0 || $ExpressionAgeInDays <= 3,
-          //   ['轻度I-B级']: () => () => $ExpressionAgeInYears > 0 || $ExpressionAgeInDays > 3,
-          //   ['中度II级']: () => isCcMcc('CC'),
-          //   ['重度III级']: () => isCcMcc('MCC'),
-          //   ['转移IV级']: () => false,
-          //   ['放疗V-A级']: () => false,
-          //   ['化疗V-B级']: () => false,
-          //   ['死亡VI-A级']: () => rawParams.dscgWay === EnumDscgWay.死亡 && ($ExpressionAgeInYears === 0 || $ExpressionAgeInDays <= 3),
-          //   ['死亡VI-B级']: () => rawParams.dscgWay === EnumDscgWay.死亡 && ($ExpressionAgeInYears > 0 || $ExpressionAgeInDays > 3)
-          // },
+          ['年龄']: {
+            ['0-28天']: () => $ExpressionAgeYears === 0 && $ExpressionAgeDays >= 0 && $ExpressionAgeDays <= 28,
+            ['29天-1周岁']: () => $ExpressionAgeYears === 0 && $ExpressionAgeDays >= 29 && $ExpressionAgeDays <= 365,
+            ['1-6岁']: () => $ExpressionAgeYears >= 1 && $ExpressionAgeYears <= 6,
+            ['7-17岁']: () => $ExpressionAgeYears >= 7 && $ExpressionAgeYears <= 17,
+            ['66岁及以上']: () => $ExpressionAgeYears >= 66
+          },
+          ['肿瘤严重程度']: {
+            ['轻度I-A级']: () => $ExpressionAgeInYears === 0 || $ExpressionAgeInDays <= 3,
+            ['轻度I-B级']: () => () => $ExpressionAgeInYears > 0 || $ExpressionAgeInDays > 3,
+            ['中度II级']: () => isCcMcc('CC'),
+            ['重度III级']: () => isCcMcc('MCC'),
+            ['转移IV级']: () => false,
+            ['放疗V-A级']: () => false,
+            ['化疗V-B级']: () => false,
+            ['死亡VI-A级']: () => rawParams.dscgWay === EnumDscgWay.死亡 && ($ExpressionAgeInYears === 0 || $ExpressionAgeInDays <= 3),
+            ['死亡VI-B级']: () => rawParams.dscgWay === EnumDscgWay.死亡 && ($ExpressionAgeInYears > 0 || $ExpressionAgeInDays > 3)
+          },
           ['疾病严重程度']: {
             ['轻度I-A级']: () => $ExpressionAgeInYears === 0 || $ExpressionAgeInDays <= 3,
             ['轻度I-B级']: () => $ExpressionAgeInYears > 0 || $ExpressionAgeInDays > 3,
