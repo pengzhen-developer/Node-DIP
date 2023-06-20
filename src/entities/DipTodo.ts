@@ -1,7 +1,7 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
 import { ApiProperty } from '@nestjs/swagger'
 
-@Entity('dip_todo_济宁_1-4月', { schema: 'fusion_core_dip' })
+@Entity('_dip_todo_济宁_1-4月', { schema: 'fusion_core_dip' })
 export class DipTodo {
   @PrimaryGeneratedColumn({ type: 'int', name: 'id' })
   id: number

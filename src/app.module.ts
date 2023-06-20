@@ -7,8 +7,8 @@ import { DipContentsSupplement } from './entities/DipContentsSupplement'
 import { DipConfigExcludeIcd9 } from './entities/DipConfigExcludeIcd9'
 import { DipConfigSettle } from './entities/DipConfigSettle'
 import { DipTodo } from './entities/DipTodo'
-import { ImpIcd10 } from './entities/ImpIcd10'
-import { ImpIcd9 } from './entities/ImpIcd9'
+import { DipConfigIcd10 } from './entities/DipConfigIcd10'
+import { DipConfigIcd9 } from './entities/DipConfigIcd9'
 import { CachingModule } from './service/caching/caching.module'
 import { DipModule } from './service/dip/dip.module'
 import { DipTodoResult } from './entities/DipTodoResult'
@@ -41,8 +41,8 @@ import { DipConfigExcludeCcMcc } from './entities/DipConfigExcludeCcMcc'
       DipConfigAvgAmount,
       DipTodo,
       DipTodoResult,
-      ImpIcd9,
-      ImpIcd10
+      DipConfigIcd9,
+      DipConfigIcd10
     ]),
     CacheModule.register({ isGlobal: true }),
     CachingModule,

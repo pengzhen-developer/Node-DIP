@@ -43,6 +43,10 @@ export class Region_370800 extends RegionBaseService {
 
     /** 模拟 DIP 均费 */
     const getDipAvgAmount = () => {
+      if (dipInfo.dipCode === 'KBBZ') {
+        return dipInfo.dipAvgAmount
+      }
+
       /** 基准分值 */
       const dipScore = dipInfo.dipSupplementName ? dipInfo.dipSupplementScore * dipInfo.dipSupplementFactor : dipInfo.dipScore
 
@@ -65,20 +69,31 @@ export class Region_370800 extends RegionBaseService {
       const sumAmount = rawParams.sumAmount ?? 0
       const dipAvgAmount = getDipAvgAmount()
 
+      if (dipInfo.dipCode === 'KBBZ') {
+        dipInfo.dipSettleDeviation = EnumDeviation.正常倍率
+        return (sumAmount / dipInfo.dipAvgAmount) * 0.7
+      }
+
       if (dipAvgAmount === 0) {
         dipInfo.dipSettleDeviation = EnumDeviation.正常倍率
         return 1
       }
 
+      // 偏差类型 - 极端异常
+      if (sumAmount >= dipAvgAmount * 5) {
+        dipInfo.dipSettleDeviation = EnumDeviation.高倍率
+        return 1
+      }
+
       // 偏差类型 - 高倍率
       // 费用在 200%以上的病例病种分值 =〔(该病例医疗总费用 ÷ 上一年度同级别定点医疗机构该病种次均医疗总费用 - 2）+ 1〕 × 该病种分值
-      if (sumAmount > dipAvgAmount * 2) {
+      if (sumAmount >= dipAvgAmount * 2) {
         dipInfo.dipSettleDeviation = EnumDeviation.高倍率
         return sumAmount / dipAvgAmount - 2 + 1
       }
       // 偏差类型 - 低倍率
       // 费用在 50%以下的病例病种分值 = 该病例医疗总费用 ÷ 上一年度同级别定点医疗机构该病种平均费用 × 该病种分值
-      else if (sumAmount < dipAvgAmount * 0.5) {
+      else if (sumAmount <= dipAvgAmount * 0.5) {
         dipInfo.dipSettleDeviation = EnumDeviation.低倍率
         return sumAmount / dipAvgAmount
       }
@@ -94,7 +109,12 @@ export class Region_370800 extends RegionBaseService {
       const hospitalFactor = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup : configSettle.factorHospital
       const supplementFactor = dipInfo.dipSupplementName ? dipInfo.dipSupplementFactor : 1
 
+      // 济宁：基层病例，不经医疗机构调整
       // 济宁：偏差病例，不经医疗机构调整
+      if (dipInfo.dipCode === 'KBBZ') {
+        dipInfo.dipSettleDeviation = EnumDeviation.正常倍率
+        return dipInfo.dipScore * dipInfo.dipSettleFactorDeviation
+      }
       if (dipInfo.dipSettleDeviation === EnumDeviation.正常倍率) {
         return dipInfo.dipScore * hospitalFactor * supplementFactor
       } else {
@@ -104,6 +124,9 @@ export class Region_370800 extends RegionBaseService {
 
     /** 获取基准分值（考虑辅助目录和基层） */
     const getDipScore = () => {
+      if (dipInfo.dipCode === 'KBBZ') {
+        return getDipSettleScore()
+      }
       const hospitalFactor = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup : configSettle.factorHospital
       const supplementFactor = dipInfo.dipSupplementName ? dipInfo.dipSupplementFactor : 1
       return dipInfo.dipScore * hospitalFactor * supplementFactor
@@ -343,6 +366,15 @@ export class Region_370800 extends RegionBaseService {
       }
     }
 
+    // 济宁: 无法入综合组，选择综合空白病组
+    if (dipInfoList.length === 0) {
+      const cacheKey = getCacheKey(formatParams.region, formatParams.version, 'KBBZ')
+      const dipInfo = dipContentList[cacheKey][0]
+      const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
+
+      dipInfoList.push(dipInfoResult)
+    }
+
     this.dipService.logger({
       title: '入综合组',
       description: dipInfoList
@@ -557,6 +589,10 @@ export class Region_370800 extends RegionBaseService {
       {
         tooltip: '综合: 保守治疗',
         filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((dipInfo) => dipInfo.dipType === EnumDipType.综合 && dipInfo.oprnOprtType === EnumOprnOprtType.保守治疗)
+      },
+      {
+        tooltip: '综合: 空白病组',
+        filter: (dipInfoList: TDipInfo[]) => dipInfoList.filter((item) => item.dipType === EnumDipType.综合 && item.oprnOprtType === '空白病组')
       }
     ]
 

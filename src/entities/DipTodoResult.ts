@@ -1,7 +1,7 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
 import { ApiProperty } from '@nestjs/swagger'
 
-@Entity('dip_todo_result', { schema: 'fusion_core_dip' })
+@Entity('_dip_todo_result', { schema: 'fusion_core_dip' })
 export class DipTodoResult {
   @PrimaryGeneratedColumn({ type: 'int', name: 'id' })
   id: number
@@ -41,6 +41,22 @@ export class DipTodoResult {
   @ApiProperty()
   @Column('varchar', { name: 'in_hospital_date', nullable: true, comment: '入院日期', length: 30 })
   inHospitalDate?: string | null
+
+  @ApiProperty()
+  @Column('varchar', { name: 'out_hospital_date', nullable: true, comment: '出院日期', length: 30 })
+  outHospitalDate?: string | null
+
+  @ApiProperty()
+  @Column('varchar', { name: 'settle_date', nullable: true, comment: '结算日期', length: 30 })
+  settleDate?: string | null
+
+  @ApiProperty()
+  @Column('varchar', { name: 'insuplc_admdvs', nullable: true, comment: '参保地行政区划', length: 30 })
+  insuplcAdmdvs?: string | null
+
+  @ApiProperty()
+  @Column('varchar', { name: 'dscg_way', nullable: true, comment: '离院方式', length: 2 })
+  dscgWay?: string | null
 
   @ApiProperty()
   @Column('decimal', { name: 'sum_amount', nullable: true, comment: '总费用', precision: 12, scale: 4 })

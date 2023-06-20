@@ -8,8 +8,8 @@ import { DipContentsSupplement } from './entities/DipContentsSupplement'
 import { DipConfigExcludeIcd9 } from './entities/DipConfigExcludeIcd9'
 import { DipConfigSettle } from './entities/DipConfigSettle'
 import { DipConfigAvgAmount } from './entities/DipConfigAvgAmount'
-import { ImpIcd9 } from './entities/ImpIcd9'
-import { ImpIcd10 } from './entities/ImpIcd10'
+import { DipConfigIcd9 } from './entities/DipConfigIcd9'
+import { DipConfigIcd10 } from './entities/DipConfigIcd10'
 import { EnumDipType } from './types/dip.type'
 import { DipConfigCcMcc } from './entities/DipConfigCcMcc'
 import { DipConfigExcludeCcMcc } from './entities/DipConfigExcludeCcMcc'
@@ -24,8 +24,8 @@ export class AppService implements OnModuleInit {
     @InjectRepository(DipConfigAvgAmount) private configAvgAmountRepository: Repository<DipConfigAvgAmount>,
     @InjectRepository(DipConfigCcMcc) private configCcMccRepository: Repository<DipConfigCcMcc>,
     @InjectRepository(DipConfigExcludeCcMcc) private configExcludeCcMccRepository: Repository<DipConfigExcludeCcMcc>,
-    @InjectRepository(ImpIcd9) private impICD9Repository: Repository<ImpIcd9>,
-    @InjectRepository(ImpIcd10) private impICD10Repository: Repository<ImpIcd10>,
+    @InjectRepository(DipConfigIcd9) private impICD9Repository: Repository<DipConfigIcd9>,
+    @InjectRepository(DipConfigIcd10) private impICD10Repository: Repository<DipConfigIcd10>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache
   ) {}
 

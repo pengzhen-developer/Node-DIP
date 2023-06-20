@@ -7,8 +7,8 @@ import {
   TDipContents,
   TDipConfigExcludeIcd9,
   TDipConfigSettle,
-  TImpIcd9,
-  TImpIcd10,
+  TDipConfigIcd9,
+  TDipConfigIcd10,
   TDebug,
   TDipInfo,
   TDipContentsSupplement,
@@ -34,10 +34,10 @@ export class DipService implements OnApplicationBootstrap {
   CACHE_DIP_CONFIG_AVG_AMOUNT: TDipConfigAvgAmount
   CACHE_DIP_CONFIG_CC_MCC: TDipConfigCcMcc
   CACHE_DIP_CONFIG_EXCLUDE_CC_MCC: TDipConfigExcludeCcMcc
-  CACHE_IMP_ICD9: TImpIcd9
-  CACHE_IMP_ICD10: TImpIcd10
-  CACHE_CONTENTS_ICD9_YB_2_0: TImpIcd9
-  CACHE_CONTENTS_ICD9_GL_3_0: TImpIcd9
+  CACHE_IMP_ICD9: TDipConfigIcd9
+  CACHE_IMP_ICD10: TDipConfigIcd10
+  CACHE_CONTENTS_ICD9_YB_2_0: TDipConfigIcd9
+  CACHE_CONTENTS_ICD9_GL_3_0: TDipConfigIcd9
   log: TDebug[]
 
   constructor(
@@ -57,15 +57,15 @@ export class DipService implements OnApplicationBootstrap {
     this.CACHE_BASIC_GROUP_LIST = await this.cacheManager.get<TDipContents>('CACHE_BASIC_GROUP_LIST')
     this.CACHE_COMPREHENSIVE_GROUP_LIST = await this.cacheManager.get<TDipContents>('CACHE_COMPREHENSIVE_GROUP_LIST')
     this.CACHE_DIP_CONTENTS_SUPPLEMENT_LIST = await this.cacheManager.get<TDipContentsSupplement>('CACHE_DIP_CONTENTS_SUPPLEMENT_LIST')
-    this.CACHE_IMP_ICD9 = await this.cacheManager.get<TImpIcd9>('CACHE_IMP_ICD9')
-    this.CACHE_IMP_ICD10 = await this.cacheManager.get<TImpIcd10>('CACHE_IMP_ICD10')
+    this.CACHE_IMP_ICD9 = await this.cacheManager.get<TDipConfigIcd9>('CACHE_IMP_ICD9')
+    this.CACHE_IMP_ICD10 = await this.cacheManager.get<TDipConfigIcd10>('CACHE_IMP_ICD10')
     this.CACHE_DIP_CONFIG_EXCLUDE_ICD9 = await this.cacheManager.get<TDipConfigExcludeIcd9>('CACHE_DIP_CONFIG_EXCLUDE_ICD9')
     this.CACHE_DIP_CONFIG_SETTLE = await this.cacheManager.get<TDipConfigSettle>('CACHE_DIP_CONFIG_SETTLE')
     this.CACHE_DIP_CONFIG_AVG_AMOUNT = await this.cacheManager.get<TDipConfigAvgAmount>('CACHE_DIP_CONFIG_AVG_AMOUNT')
     this.CACHE_DIP_CONFIG_CC_MCC = await this.cacheManager.get<TDipConfigCcMcc>('CACHE_DIP_CONFIG_CC_MCC')
     this.CACHE_DIP_CONFIG_EXCLUDE_CC_MCC = await this.cacheManager.get<TDipConfigExcludeCcMcc>('CACHE_DIP_CONFIG_EXCLUDE_CC_MCC')
-    this.CACHE_CONTENTS_ICD9_YB_2_0 = await this.cacheManager.get<TImpIcd9>('CACHE_CONTENTS_ICD9_YB_2.0')
-    this.CACHE_CONTENTS_ICD9_GL_3_0 = await this.cacheManager.get<TImpIcd9>('CACHE_CONTENTS_ICD9_GL_3.0')
+    this.CACHE_CONTENTS_ICD9_YB_2_0 = await this.cacheManager.get<TDipConfigIcd9>('CACHE_CONTENTS_ICD9_YB_2.0')
+    this.CACHE_CONTENTS_ICD9_GL_3_0 = await this.cacheManager.get<TDipConfigIcd9>('CACHE_CONTENTS_ICD9_GL_3.0')
   }
 
   /**

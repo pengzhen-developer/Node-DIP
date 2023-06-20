@@ -1,7 +1,7 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
 
-@Entity('imp_icd10', { schema: 'fusion_core_dip' })
-export class ImpIcd10 {
+@Entity('dip_config_icd10', { schema: 'fusion_core_dip' })
+export class DipConfigIcd10 {
   @PrimaryGeneratedColumn({ type: 'int', name: 'id' })
   id: number
 

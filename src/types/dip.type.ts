@@ -2,8 +2,8 @@ import { DipConfigExcludeIcd9 } from 'src/entities/DipConfigExcludeIcd9'
 import { DipConfigSettle } from 'src/entities/DipConfigSettle'
 import { DipContents } from 'src/entities/DipContents'
 import { DipTodo } from 'src/entities/DipTodo'
-import { ImpIcd10 } from 'src/entities/ImpIcd10'
-import { ImpIcd9 } from 'src/entities/ImpIcd9'
+import { DipConfigIcd10 } from 'src/entities/DipConfigIcd10'
+import { DipConfigIcd9 } from 'src/entities/DipConfigIcd9'
 import { DipContentsSupplement } from 'src/entities/DipContentsSupplement'
 import { DipConfigAvgAmount } from 'src/entities/DipConfigAvgAmount'
 import { DipConfigCcMcc } from 'src/entities/DipConfigCcMcc'
@@ -37,12 +37,12 @@ export type TDipConfigExcludeCcMcc = {
   [key: string]: DipConfigExcludeCcMcc[]
 }
 
-export type TImpIcd9 = {
-  [key: string]: ImpIcd9
+export type TDipConfigIcd9 = {
+  [key: string]: DipConfigIcd9
 }
 
-export type TImpIcd10 = {
-  [key: string]: ImpIcd10
+export type TDipConfigIcd10 = {
+  [key: string]: DipConfigIcd10
 }
 
 export type TDipContents = {
