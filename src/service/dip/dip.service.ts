@@ -15,7 +15,8 @@ import {
   EnumDipUnMatchCode,
   TDipConfigAvgAmount,
   TDipConfigExcludeCcMcc,
-  TDipConfigCcMcc
+  TDipConfigCcMcc,
+  EnumRegion
 } from 'src/types/dip.type'
 import { DipTodo } from 'src/entities/DipTodo'
 import { DipTodoResult } from 'src/entities/DipTodoResult'
@@ -36,6 +37,7 @@ export class DipService implements OnApplicationBootstrap {
   CACHE_DIP_CONFIG_EXCLUDE_CC_MCC: TDipConfigExcludeCcMcc
   CACHE_IMP_ICD9: TDipConfigIcd9
   CACHE_IMP_ICD10: TDipConfigIcd10
+  CACHE_CONTENTS_ICD9_YB_1_0: TDipConfigIcd9
   CACHE_CONTENTS_ICD9_YB_2_0: TDipConfigIcd9
   CACHE_CONTENTS_ICD9_GL_3_0: TDipConfigIcd9
   log: TDebug[]
@@ -64,6 +66,7 @@ export class DipService implements OnApplicationBootstrap {
     this.CACHE_DIP_CONFIG_AVG_AMOUNT = await this.cacheManager.get<TDipConfigAvgAmount>('CACHE_DIP_CONFIG_AVG_AMOUNT')
     this.CACHE_DIP_CONFIG_CC_MCC = await this.cacheManager.get<TDipConfigCcMcc>('CACHE_DIP_CONFIG_CC_MCC')
     this.CACHE_DIP_CONFIG_EXCLUDE_CC_MCC = await this.cacheManager.get<TDipConfigExcludeCcMcc>('CACHE_DIP_CONFIG_EXCLUDE_CC_MCC')
+    this.CACHE_CONTENTS_ICD9_YB_1_0 = await this.cacheManager.get<TDipConfigIcd9>('CACHE_CONTENTS_ICD9_YB_1.0')
     this.CACHE_CONTENTS_ICD9_YB_2_0 = await this.cacheManager.get<TDipConfigIcd9>('CACHE_CONTENTS_ICD9_YB_2.0')
     this.CACHE_CONTENTS_ICD9_GL_3_0 = await this.cacheManager.get<TDipConfigIcd9>('CACHE_CONTENTS_ICD9_GL_3.0')
   }
@@ -187,10 +190,12 @@ export class DipService implements OnApplicationBootstrap {
         }
       }
 
-      // 诊断编码转换
-      // item.diagCode = item.diagCode.map((diagCode) => this.impICD10(undefined, undefined, diagCode)).filter((item) => item)
-      // 手术编码转换
-      // item.oprnOprtCode = item.oprnOprtCode.map((oprnOprtCode) => this.impICD9(undefined, undefined, oprnOprtCode)).filter((item) => item)
+      if (param.region === EnumRegion.济宁市) {
+        // 诊断编码转换
+        item.diagCode = item.diagCode.map((diagCode) => this.impICD10('YB_2.0', 'YB_1.0', diagCode)).filter((item) => item)
+        // 手术编码转换
+        item.oprnOprtCode = item.oprnOprtCode.map((oprnOprtCode) => this.impICD9('YB_2.0', 'YB_1.0', oprnOprtCode)).filter((item) => item)
+      }
       // 手术编码排除
       item.oprnOprtCode = item.oprnOprtCode.map((oprnOprtCode) => this.excludeICD9(item.region, item.version, oprnOprtCode)).filter((item) => item)
 

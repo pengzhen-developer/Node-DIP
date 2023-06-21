@@ -160,6 +160,7 @@ export class AppService implements OnModuleInit {
     const CACHE = {
       [`CACHE_IMP_ICD9`]: {},
       [`CACHE_CONTENTS_ICD9_GL_3.0`]: {},
+      [`CACHE_CONTENTS_ICD9_YB_1.0`]: {},
       [`CACHE_CONTENTS_ICD9_YB_2.0`]: {}
     }
     const impICD9 = await this.impICD9Repository.find()
@@ -193,6 +194,7 @@ export class AppService implements OnModuleInit {
     const CACHE = {
       [`CACHE_IMP_ICD10`]: {},
       [`CACHE_CONTENTS_ICD10_GL_3.0`]: {},
+      [`CACHE_CONTENTS_ICD10_YB_1.0`]: {},
       [`CACHE_CONTENTS_ICD10_YB_2.0`]: {}
     }
     const impICD10 = await this.impICD10Repository.find()

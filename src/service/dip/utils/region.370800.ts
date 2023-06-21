@@ -362,8 +362,8 @@ export class Region_370800 extends RegionBaseService {
         }
       })
 
+      dipInfoList.splice(0, dipInfoList.length)
       if (matchDipInfo) {
-        dipInfoList.splice(0, dipInfoList.length)
         dipInfoList.push(matchDipInfo)
       }
     }
@@ -617,7 +617,7 @@ export class Region_370800 extends RegionBaseService {
   /**
    * 获取最大手术操作类型
    */
-  public getOprnOprtType(oprnOprtCode, toVersion = 'YB_2.0'): string {
+  public getOprnOprtType(oprnOprtCode, toVersion = 'YB_1.0'): string {
     if (!oprnOprtCode) {
       return EnumOprnOprtType.保守治疗
     }
@@ -627,18 +627,18 @@ export class Region_370800 extends RegionBaseService {
         const cacheKeyP = getCacheKey(toVersion, p)
         const cacheKeyC = getCacheKey(toVersion, c)
 
-        return this.getOprnSort(this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKeyP]?.oprnOprtType) >=
-          this.getOprnSort(this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKeyC]?.oprnOprtType)
+        return this.getOprnSort(this.dipService.CACHE_CONTENTS_ICD9_YB_1_0[cacheKeyP]?.oprnOprtType) >=
+          this.getOprnSort(this.dipService.CACHE_CONTENTS_ICD9_YB_1_0[cacheKeyC]?.oprnOprtType)
           ? p
           : c
       })
       const cacheKey = getCacheKey(toVersion, temp)
-      const oprnOprtType = this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtType
+      const oprnOprtType = this.dipService.CACHE_CONTENTS_ICD9_YB_1_0[cacheKey]?.oprnOprtType
 
       return (oprnOprtType === EnumOprnOprtType.介入治疗 ? EnumOprnOprtType.治疗性操作 : oprnOprtType) ?? EnumOprnOprtType.保守治疗
     } else {
       const cacheKey = getCacheKey(toVersion, oprnOprtCode)
-      const oprnOprtType = this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtType
+      const oprnOprtType = this.dipService.CACHE_CONTENTS_ICD9_YB_1_0[cacheKey]?.oprnOprtType
 
       return (oprnOprtType === EnumOprnOprtType.介入治疗 ? EnumOprnOprtType.治疗性操作 : oprnOprtType) ?? EnumOprnOprtType.保守治疗
     }
@@ -647,7 +647,7 @@ export class Region_370800 extends RegionBaseService {
   /**
    * 获取最大手术操作级别
    */
-  public getOprnOprtLevel(oprnOprtCode, toVersion = 'YB_2.0'): string {
+  public getOprnOprtLevel(oprnOprtCode, toVersion = 'YB_1.0'): string {
     if (oprnOprtCode && oprnOprtCode.length === 0) {
       return ''
     }
@@ -657,15 +657,15 @@ export class Region_370800 extends RegionBaseService {
         const cacheKeyP = getCacheKey(toVersion, p)
         const cacheKeyC = getCacheKey(toVersion, c)
 
-        return this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKeyP]?.oprnOprtLevel >= this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKeyC]?.oprnOprtLevel ? p : c
+        return this.dipService.CACHE_CONTENTS_ICD9_YB_1_0[cacheKeyP]?.oprnOprtLevel >= this.dipService.CACHE_CONTENTS_ICD9_YB_1_0[cacheKeyC]?.oprnOprtLevel ? p : c
       })
       const cacheKey = getCacheKey(toVersion, temp)
 
-      return this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtLevel ?? ''
+      return this.dipService.CACHE_CONTENTS_ICD9_YB_1_0[cacheKey]?.oprnOprtLevel ?? ''
     } else {
       const cacheKey = getCacheKey(toVersion, oprnOprtCode)
 
-      return this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtLevel ?? ''
+      return this.dipService.CACHE_CONTENTS_ICD9_YB_1_0[cacheKey]?.oprnOprtLevel ?? ''
     }
   }
 
@@ -681,7 +681,7 @@ export class Region_370800 extends RegionBaseService {
   /**
    * 是否保守治疗
    */
-  public isConservative(oprnOprtCode, toVersion = 'YB_2.0'): boolean {
+  public isConservative(oprnOprtCode, toVersion = 'YB_1.0'): boolean {
     if (oprnOprtCode.length === 0) {
       return true
     }
@@ -690,19 +690,19 @@ export class Region_370800 extends RegionBaseService {
       return oprnOprtCode.every((oprnOprtCode) => {
         const cacheKey = getCacheKey(toVersion, oprnOprtCode)
 
-        if (!this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]) {
+        if (!this.dipService.CACHE_CONTENTS_ICD9_YB_1_0[cacheKey]) {
           return true
         } else {
-          return this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnSincType === '0类' && this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtLevel < '3'
+          return this.dipService.CACHE_CONTENTS_ICD9_YB_1_0[cacheKey]?.oprnSincType === '0类' && this.dipService.CACHE_CONTENTS_ICD9_YB_1_0[cacheKey]?.oprnOprtLevel < '3'
         }
       })
     } else {
       const cacheKey = getCacheKey(toVersion, oprnOprtCode)
 
-      if (!this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]) {
+      if (!this.dipService.CACHE_CONTENTS_ICD9_YB_1_0[cacheKey]) {
         return true
       } else {
-        return this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnSincType === '0类' && this.dipService.CACHE_CONTENTS_ICD9_YB_2_0[cacheKey]?.oprnOprtLevel < '3'
+        return this.dipService.CACHE_CONTENTS_ICD9_YB_1_0[cacheKey]?.oprnSincType === '0类' && this.dipService.CACHE_CONTENTS_ICD9_YB_1_0[cacheKey]?.oprnOprtLevel < '3'
       }
     }
   }
