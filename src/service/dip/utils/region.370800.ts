@@ -81,18 +81,19 @@ export class Region_370800 extends RegionBaseService {
 
       // 偏差类型 - 极端异常
       if (sumAmount >= dipAvgAmount * 5) {
-        dipInfo.dipSettleDeviation = EnumDeviation.高倍率
-        return 1
-      }
+        const hospitalFactor = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup * 1 : configSettle.factorHospital * 1
 
-      // 偏差类型 - 高倍率
-      // 费用在 200%以上的病例病种分值 =〔(该病例医疗总费用 ÷ 上一年度同级别定点医疗机构该病种次均医疗总费用 - 2）+ 1〕 × 该病种分值
-      if (sumAmount >= dipAvgAmount * 2) {
         dipInfo.dipSettleDeviation = EnumDeviation.高倍率
-        return sumAmount / dipAvgAmount - 2 + 1
+        return hospitalFactor
+      }
+      // 偏差类型 - 高倍率
+      else if (sumAmount >= dipAvgAmount * 2) {
+        const hospitalFactor = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup * 1 : configSettle.factorHospital * 1
+
+        dipInfo.dipSettleDeviation = EnumDeviation.高倍率
+        return sumAmount / dipAvgAmount - 2 + hospitalFactor
       }
       // 偏差类型 - 低倍率
-      // 费用在 50%以下的病例病种分值 = 该病例医疗总费用 ÷ 上一年度同级别定点医疗机构该病种平均费用 × 该病种分值
       else if (sumAmount <= dipAvgAmount * 0.5) {
         dipInfo.dipSettleDeviation = EnumDeviation.低倍率
         return sumAmount / dipAvgAmount
@@ -109,16 +110,17 @@ export class Region_370800 extends RegionBaseService {
       const hospitalFactor = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup : configSettle.factorHospital
       const supplementFactor = dipInfo.dipSupplementName ? dipInfo.dipSupplementFactor : 1
 
-      // 济宁：基层病例，不经医疗机构调整
-      // 济宁：偏差病例，不经医疗机构调整
+      // 空白病种无任何调整系数
       if (dipInfo.dipCode === 'KBBZ') {
-        dipInfo.dipSettleDeviation = EnumDeviation.正常倍率
         return dipInfo.dipScore * dipInfo.dipSettleFactorDeviation
       }
-      if (dipInfo.dipSettleDeviation === EnumDeviation.正常倍率) {
-        return dipInfo.dipScore * hospitalFactor * supplementFactor
-      } else {
+      // 偏差病种无任何调整系数【因为计算偏差系数时，已进行对应调整】
+      else if (dipInfo.dipSettleDeviation === EnumDeviation.低倍率 || dipInfo.dipSettleDeviation === EnumDeviation.高倍率) {
         return dipInfo.dipScore * dipInfo.dipSettleFactorDeviation * supplementFactor
+      }
+      // 其他类型，需考虑调整系数【基层系数 / 医疗机构系数】
+      else {
+        return dipInfo.dipScore * dipInfo.dipSettleFactorDeviation * supplementFactor * hospitalFactor
       }
     }
 
