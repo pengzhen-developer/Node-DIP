@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common'
 import { DipTodo } from 'src/entities/DipTodo'
 import { TDipInfo, TDipContents, EnumDipType, EnumOprnOprtType, EnumCcMcc, EnumDeviation, EnumInsuranceType, TDipContentsSupplement, EnumDscgWay } from 'src/types/dip.type'
-import { getCacheKey } from 'src/utils'
+import { getAge, getCacheKey } from 'src/utils'
 import { DipService } from '../dip.service'
 import { RegionBaseService } from './region.base.service'
 
@@ -390,15 +390,16 @@ export class Region_370800 extends RegionBaseService {
   intoSupplementGroup(rawParams: DipTodo, formatParams: DipTodo, dipContentsSupplementList: TDipContentsSupplement, dipInfoList: TDipInfo[]) {
     // 严重程度：
     // 1: 轻度
-    // 2: 中度
-    // 3: 重度
-    // 4: 死亡
+    // 2: 中度(住院天数3天以上)
+    // 3: 重度(住院天数3天以上)
+    // 4: 死亡(住院天数3天以上)
     if (dipInfoList.some((item) => item.dipCode.includes('code') && item.dipName.includes('辅助目录'))) {
       // 疾病级别 - 表达式关键要素
       const $ExpressionCcMcc = this.dipService.CACHE_DIP_CONFIG_CC_MCC
       const $ExpressionExcludeCcMcc = this.dipService.CACHE_DIP_CONFIG_EXCLUDE_CC_MCC
       const $ExpressionMajorDiagCode = formatParams.diagCode.slice(0, 1) as string[]
       const $ExpressionMinorDiagCode = formatParams.diagCode.slice(1) as string[]
+      const { years: $ExpressionAgeInYears, days: $ExpressionAgeInDays } = getAge(new Date(rawParams.inHospitalDate), new Date(rawParams.outHospitalDate))
 
       const $IsCcMcc = (type: 'CC' | 'MCC') => {
         return $ExpressionMinorDiagCode.some((diagCode) => {
@@ -413,18 +414,24 @@ export class Region_370800 extends RegionBaseService {
         return rawParams.dscgWay === EnumDscgWay.死亡
       }
 
-      if ($ExpressionIsDead() && dipInfoList.some((item) => item.dipCode.includes('code_4') && item.dipName.includes('辅助目录区分疾病_4'))) {
-        return dipInfoList
-          .filter((item) => item.dipCode.includes('code_4') && item.dipName.includes('辅助目录区分疾病_4'))
-          .concat(dipInfoList.filter((item) => !item.dipCode.includes('code') && !item.dipName.includes('辅助目录')))
-      } else if ($IsCcMcc('MCC') && dipInfoList.some((item) => item.dipCode.includes('code_3') && item.dipName.includes('辅助目录区分疾病_3'))) {
-        return dipInfoList
-          .filter((item) => item.dipCode.includes('code_3') && item.dipName.includes('辅助目录区分疾病_3'))
-          .concat(dipInfoList.filter((item) => !item.dipCode.includes('code') && !item.dipName.includes('辅助目录')))
-      } else if ($IsCcMcc('CC') && dipInfoList.some((item) => item.dipCode.includes('code_2') && item.dipName.includes('辅助目录区分疾病_2'))) {
-        return dipInfoList
-          .filter((item) => item.dipCode.includes('code_2') && item.dipName.includes('辅助目录区分疾病_2'))
-          .concat(dipInfoList.filter((item) => !item.dipCode.includes('code') && !item.dipName.includes('辅助目录')))
+      if ($ExpressionAgeInYears > 0 || $ExpressionAgeInDays > 3) {
+        if ($ExpressionIsDead() && dipInfoList.some((item) => item.dipCode.includes('code_4') && item.dipName.includes('辅助目录区分疾病_4'))) {
+          return dipInfoList
+            .filter((item) => item.dipCode.includes('code_4') && item.dipName.includes('辅助目录区分疾病_4'))
+            .concat(dipInfoList.filter((item) => !item.dipCode.includes('code') && !item.dipName.includes('辅助目录')))
+        } else if ($IsCcMcc('MCC') && dipInfoList.some((item) => item.dipCode.includes('code_3') && item.dipName.includes('辅助目录区分疾病_3'))) {
+          return dipInfoList
+            .filter((item) => item.dipCode.includes('code_3') && item.dipName.includes('辅助目录区分疾病_3'))
+            .concat(dipInfoList.filter((item) => !item.dipCode.includes('code') && !item.dipName.includes('辅助目录')))
+        } else if ($IsCcMcc('CC') && dipInfoList.some((item) => item.dipCode.includes('code_2') && item.dipName.includes('辅助目录区分疾病_2'))) {
+          return dipInfoList
+            .filter((item) => item.dipCode.includes('code_2') && item.dipName.includes('辅助目录区分疾病_2'))
+            .concat(dipInfoList.filter((item) => !item.dipCode.includes('code') && !item.dipName.includes('辅助目录')))
+        } else {
+          return dipInfoList
+            .filter((item) => item.dipCode.includes('code_1') && item.dipName.includes('辅助目录区分疾病_1'))
+            .concat(dipInfoList.filter((item) => !item.dipCode.includes('code') && !item.dipName.includes('辅助目录')))
+        }
       } else {
         return dipInfoList
           .filter((item) => item.dipCode.includes('code_1') && item.dipName.includes('辅助目录区分疾病_1'))
