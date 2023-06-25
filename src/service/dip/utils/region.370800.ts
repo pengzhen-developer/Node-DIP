@@ -27,7 +27,6 @@ export class Region_370800 extends RegionBaseService {
     // 选定组
     decideGroups = this.chooseCoreGroupByMajorOprnOprtCode(rawParams, formatParams, [...coreGroups])
     decideGroups = this.chooseCoreGroupByMatchQuantity(rawParams, formatParams, [...decideGroups])
-    decideGroups = this.chooseCoreGroupByMajorOprnOprtType(rawParams, formatParams, [...decideGroups])
     decideGroups = this.chooseCoreGroupByAbsoluteFee(rawParams, formatParams, [...decideGroups])
     decideGroups = this.chooseUniqueGroupByDipType(rawParams, formatParams, [...decideGroups, ...basicGroups, ...comprehensiveGroup])
 
@@ -224,9 +223,9 @@ export class Region_370800 extends RegionBaseService {
         if (dipOperations.length > 0 && dipOperations.every((item) => formatParams.oprnOprtCode.includes(item))) {
           const dipInfoResult = JSON.parse(JSON.stringify(dipInfo)) as TDipInfo
 
-          dipInfoResult.oprnOprtCodeMatch = (formatParams.oprnOprtCode as string[]).filter((v) => dipOperations.includes(v)) ?? []
+          dipInfoResult.oprnOprtCodeMatch = [...new Set((formatParams.oprnOprtCode as string[]).filter((v) => dipOperations.includes(v)))] ?? []
           dipInfoResult.oprnOprtCodeMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
-          dipInfoResult.oprnOprtCodeUnMatch = (formatParams.oprnOprtCode as string[]).filter((v) => !dipOperations.includes(v)) ?? []
+          dipInfoResult.oprnOprtCodeUnMatch = [...new Set((formatParams.oprnOprtCode as string[]).filter((v) => !dipOperations.includes(v)))] ?? []
           dipInfoResult.oprnOprtCodeUnMatchType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeUnMatch)
           dipInfoResult.oprnOprtType = this.getOprnOprtType(dipInfoResult.oprnOprtCodeMatch)
 
