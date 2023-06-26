@@ -44,37 +44,35 @@ export class Region_370800 extends RegionBaseService {
     const getDipSettleFactorDeviation = () => {
       const sumAmount = rawParams.sumAmount ?? 0
       const dipAvgAmount = this.dipService.getDipAvgAmount(rawParams, formatParams, dipInfo)
-
-      if (dipInfo.dipCode === 'KBBZ') {
-        dipInfo.dipSettleDeviation = EnumDeviation.正常倍率
-        return (sumAmount / dipInfo.dipAvgAmount) * 0.7
-      }
+      const hospitalFactor = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup * 1 : configSettle.factorHospital * 1
 
       if (dipAvgAmount === 0) {
         dipInfo.dipSettleDeviation = EnumDeviation.正常倍率
         return 1
       }
 
-      // 偏差类型 - 极端异常
-      if (sumAmount >= dipAvgAmount * 5) {
-        const hospitalFactor = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup * 1 : configSettle.factorHospital * 1
-
-        dipInfo.dipSettleDeviation = EnumDeviation.高倍率
-        return hospitalFactor
+      // 空白病组
+      if (dipInfo.dipCode === 'KBBZ') {
+        dipInfo.dipSettleDeviation = EnumDeviation.正常倍率
+        return (sumAmount / dipInfo.dipAvgAmount) * 0.7
       }
-      // 偏差类型 - 高倍率
-      else if (sumAmount >= dipAvgAmount * 2) {
-        const hospitalFactor = dipInfo.dipType === EnumDipType.基层 ? dipInfo.dipFactorBasicGroup * 1 : configSettle.factorHospital * 1
 
-        dipInfo.dipSettleDeviation = EnumDeviation.高倍率
-        return sumAmount / dipAvgAmount - 2 + hospitalFactor
-      }
       // 偏差类型 - 低倍率
-      else if (sumAmount <= dipAvgAmount * 0.5) {
+      if (sumAmount <= dipAvgAmount * 0.5) {
         dipInfo.dipSettleDeviation = EnumDeviation.低倍率
         return sumAmount / dipAvgAmount
       }
-      // 偏差类型 - 正常倍率
+      // 偏差类型 - 高倍率
+      else if (sumAmount >= dipAvgAmount * 2) {
+        dipInfo.dipSettleDeviation = EnumDeviation.高倍率
+        return sumAmount / dipAvgAmount - 2 + hospitalFactor
+      }
+      // 偏差类型 - 极端异常
+      else if (sumAmount >= dipAvgAmount * 5) {
+        dipInfo.dipSettleDeviation = EnumDeviation.高倍率
+        return hospitalFactor
+      }
+      // 正常倍率
       else {
         dipInfo.dipSettleDeviation = EnumDeviation.正常倍率
         return 1

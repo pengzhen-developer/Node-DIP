@@ -57,19 +57,17 @@ export class RegionBaseService implements IRegionStrategy {
         return 1
       }
 
-      // 偏差类型 - 高倍率
-      // 费用在 200%以上的病例病种分值 =〔(该病例医疗总费用 ÷ 上一年度同级别定点医疗机构该病种次均医疗总费用 - 2）+ 1〕 × 该病种分值
-      if (sumAmount > dipAvgAmount * 2) {
-        dipInfo.dipSettleDeviation = EnumDeviation.高倍率
-        return sumAmount / dipAvgAmount - 2 + 1
-      }
       // 偏差类型 - 低倍率
-      // 费用在 50%以下的病例病种分值 = 该病例医疗总费用 ÷ 上一年度同级别定点医疗机构该病种平均费用 × 该病种分值
-      else if (sumAmount < dipAvgAmount * 0.5) {
+      if (sumAmount <= dipAvgAmount * 0.5) {
         dipInfo.dipSettleDeviation = EnumDeviation.低倍率
         return sumAmount / dipAvgAmount
       }
-      // 偏差类型 - 正常倍率
+      // 偏差类型 - 高倍率
+      else if (sumAmount >= dipAvgAmount * 2) {
+        dipInfo.dipSettleDeviation = EnumDeviation.高倍率
+        return sumAmount / dipAvgAmount - 2 + 1
+      }
+      // 正常倍率
       else {
         dipInfo.dipSettleDeviation = EnumDeviation.正常倍率
         return 1
