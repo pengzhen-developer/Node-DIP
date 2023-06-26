@@ -46,42 +46,11 @@ export class RegionBaseService implements IRegionStrategy {
   toSettle(rawParams: DipTodo, formatParams: DipTodo, dipInfo: TDipInfo): TDipInfo {
     /** 结算系数 */
     const configSettle = this.dipService.getConfigSettle(rawParams)
-    // 平均费用
-    const configAvgAmount = this.dipService.getConfigAvgMount(
-      rawParams.region,
-      rawParams.version,
-      configSettle.hospitalLevel,
-      dipInfo.dipCode,
-      dipInfo.dipSupplementType,
-      dipInfo.dipSupplementName,
-      rawParams.insuranceType
-    )
-
-    /** 模拟 DIP 均费 */
-    const getDipAvgAmount = () => {
-      // 模拟均费 = 基准分值 * 均费调整系数【通过清算数据测算】
-
-      /** 基准分值 */
-      const dipScore = dipInfo.dipSupplementName ? dipInfo.dipSupplementScore * dipInfo.dipSupplementFactor : dipInfo.dipScore
-
-      /** 均费调整系数 */
-      const dipFactorAvgAmount =
-        dipInfo.dipType === EnumDipType.基层
-          ? rawParams.insuranceType === EnumInsuranceType.职工
-            ? configSettle.factorBasicEmployeeAvgAmount * dipInfo.dipFactorBasicGroup
-            : configSettle.factorBasicResidentAvgAmount * dipInfo.dipFactorBasicGroup
-          : rawParams.insuranceType === EnumInsuranceType.职工
-          ? configSettle.factorEmployeeAvgAmount
-          : configSettle.factorResidentAvgAmount
-
-      // 单一病组均费【通过清算数据测算】 => 模拟均费
-      return configAvgAmount?.dipAvgAmount ?? dipScore * dipFactorAvgAmount
-    }
 
     /** 获取偏差系数和偏差类型 */
     const getDipSettleFactorDeviation = () => {
       const sumAmount = rawParams.sumAmount ?? 0
-      const dipAvgAmount = getDipAvgAmount()
+      const dipAvgAmount = this.dipService.getDipAvgAmount(rawParams, formatParams, dipInfo)
 
       if (dipAvgAmount === 0) {
         dipInfo.dipSettleDeviation = EnumDeviation.正常倍率
@@ -126,7 +95,7 @@ export class RegionBaseService implements IRegionStrategy {
       return rawParams.insuranceType === EnumInsuranceType.职工 ? configSettle.factorEmployeePrice : configSettle.factorResidentPrice
     }
 
-    dipInfo.dipSettleAvgAmount = getDipAvgAmount()
+    dipInfo.dipSettleAvgAmount = this.dipService.getDipAvgAmount(rawParams, formatParams, dipInfo)
 
     dipInfo.dipSettleFactorDeviation = getDipSettleFactorDeviation()
     dipInfo.dipSettleFactorHospital = configSettle.factorHospital
@@ -475,45 +444,38 @@ export class RegionBaseService implements IRegionStrategy {
     // （均费与费用绝对值越小，优先级越高）
     const chooseGroupByAbsoluteFee = [
       dipInfoList.reduce((p, c) => {
-        // 结算系数
-        const configSettle = this.dipService.getConfigSettle(rawParams)
-        // 平均费用
-        const configPAvgAmount = this.dipService.getConfigAvgMount(
-          rawParams.region,
-          rawParams.version,
-          configSettle.hospitalLevel,
-          p.dipCode,
-          p.dipSupplementType,
-          p.dipSupplementName,
-          rawParams.insuranceType
-        )
-        const configCAvgAmount = this.dipService.getConfigAvgMount(
-          rawParams.region,
-          rawParams.version,
-          configSettle.hospitalLevel,
-          c.dipCode,
-          c.dipSupplementType,
-          c.dipSupplementName,
-          rawParams.insuranceType
-        )
-
         const sumAmount = rawParams.sumAmount ?? 0
-        const pDipAvgAmount =
-          configPAvgAmount?.dipAvgAmount ??
-          p.dipSupplementAvgAmount ??
-          p.dipAvgAmount ??
-          (rawParams.insuranceType === EnumInsuranceType.职工
-            ? configSettle.factorEmployeePrice * (p.dipSupplementScore ?? p.dipScore)
-            : configSettle.factorResidentPrice * (p.dipSupplementScore ?? p.dipScore))
-        const cDipAvgAmount =
-          configCAvgAmount?.dipAvgAmount ??
-          c.dipSupplementAvgAmount ??
-          c.dipAvgAmount ??
-          (rawParams.insuranceType === EnumInsuranceType.职工
-            ? configSettle.factorEmployeePrice * (c.dipSupplementScore ?? c.dipScore)
-            : configSettle.factorResidentPrice * (c.dipSupplementScore ?? c.dipScore))
+        const pDipAvgAmount = this.dipService.getDipAvgAmount(rawParams, formatParams, p)
+        const cDipAvgAmount = this.dipService.getDipAvgAmount(rawParams, formatParams, c)
 
-        if (Math.abs(pDipAvgAmount - sumAmount) <= Math.abs(cDipAvgAmount - sumAmount)) {
+        if (Math.abs(sumAmount - pDipAvgAmount) < Math.abs(sumAmount - cDipAvgAmount)) {
+          return p
+        } else {
+          return c
+        }
+      })
+    ]
+
+    this.dipService.logger({
+      title: '根据费用绝对值选择组',
+      description: chooseGroupByAbsoluteFee
+    })
+
+    return chooseGroupByAbsoluteFee
+  }
+
+  /**
+   * 根据分值高低选择组
+   */
+  chooseCoreGroupByScore(rawParams: DipTodo, formatParams: DipTodo, dipInfoList: TDipInfo[]): TDipInfo[] {
+    if (dipInfoList.length === 0) {
+      return []
+    }
+
+    // （分值高，优先级越高）
+    const chooseGroupByAbsoluteFee = [
+      dipInfoList.reduce((p, c) => {
+        if (p.dipScore > c.dipScore) {
           return p
         } else {
           return c

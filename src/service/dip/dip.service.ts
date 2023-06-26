@@ -16,7 +16,9 @@ import {
   TDipConfigAvgAmount,
   TDipConfigExcludeCcMcc,
   TDipConfigCcMcc,
-  EnumRegion
+  EnumRegion,
+  EnumDipType,
+  EnumInsuranceType
 } from 'src/types/dip.type'
 import { DipTodo } from 'src/entities/DipTodo'
 import { DipTodoResult } from 'src/entities/DipTodoResult'
@@ -318,6 +320,33 @@ export class DipService implements OnApplicationBootstrap {
   ): DipConfigAvgAmount {
     const cacheKey = getCacheKey(region, version, hospitalLevel, dipCode, dipSupplementType, dipSupplementName, insuranceType)
     return this.CACHE_DIP_CONFIG_AVG_AMOUNT[cacheKey]
+  }
+
+  /** 模拟 DIP 均费 */
+  public getDipAvgAmount(rawParams: DipTodo, formatParams: DipTodo, dipInfo: TDipInfo) {
+    // 结算系数
+    const configSettle = this.getConfigSettle(rawParams)
+    /** 基准分值 */
+    const dipScore = dipInfo.dipSupplementName ? dipInfo.dipSupplementScore * dipInfo.dipSupplementFactor : dipInfo.dipScore
+    /** 均费调整系数 */
+    const getDipFactorAvgAmount = () => {
+      if (dipInfo.dipType === EnumDipType.基层) {
+        if (rawParams.insuranceType === EnumInsuranceType.职工) {
+          return configSettle.factorBasicEmployeeAvgAmount * dipInfo.dipFactorBasicGroup
+        } else {
+          return configSettle.factorBasicResidentAvgAmount * dipInfo.dipFactorBasicGroup
+        }
+      } else {
+        if (rawParams.insuranceType === EnumInsuranceType.职工) {
+          return configSettle.factorEmployeeAvgAmount
+        } else {
+          return configSettle.factorResidentAvgAmount
+        }
+      }
+    }
+
+    const dipFactorAvgAmount = getDipFactorAvgAmount()
+    return dipScore * dipFactorAvgAmount
   }
 
   /**
