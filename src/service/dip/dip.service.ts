@@ -293,19 +293,20 @@ export class DipService implements OnApplicationBootstrap {
    */
   public getConfigSettle(rawParams: DipTodo): DipConfigSettle {
     if (rawParams.region === EnumRegion.济宁市) {
+      const settleConfig = this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(rawParams.region, rawParams.version, '', '', rawParams.hosCode)]
       const specialDate = new Date('2023/05/01 00:00:00')
       const settleDate = new Date(rawParams.settleDate)
       const settleMonth = new Date(rawParams.settleDate).getUTCMonth() + 1
       const isLocal = !rawParams.insuplcAdmdvs || rawParams.insuplcAdmdvs.startsWith('3708')
 
       if (isLocal) {
-        return this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(rawParams.region, rawParams.version, settleMonth, '', rawParams.hosCode)]
+        return this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(rawParams.region, rawParams.version, settleMonth, '', rawParams.hosCode)] ?? settleConfig
       } else {
         // 自2023年5月起，省内异地为同一值
         if (settleDate >= specialDate) {
-          return this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(rawParams.region, rawParams.version, settleMonth, '省内异地', rawParams.hosCode)]
+          return this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(rawParams.region, rawParams.version, settleMonth, '省内异地', rawParams.hosCode)] ?? settleConfig
         } else {
-          return this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(rawParams.region, rawParams.version, settleMonth, rawParams.insuplcAdmdvs, rawParams.hosCode)]
+          return this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(rawParams.region, rawParams.version, settleMonth, rawParams.insuplcAdmdvs, rawParams.hosCode)] ?? settleConfig
         }
       }
     } else {
