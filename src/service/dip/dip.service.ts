@@ -292,17 +292,24 @@ export class DipService implements OnApplicationBootstrap {
    * 获取结算配置信息
    */
   public getConfigSettle(rawParams: DipTodo): DipConfigSettle {
-    let configSettle1
-    let configSettle2
+    if (rawParams.region === EnumRegion.济宁市) {
+      const specialDate = new Date('2023/05/01 00:00:00')
+      const settleDate = new Date(rawParams.settleDate)
+      const settleMonth = new Date(rawParams.settleDate).getUTCMonth() + 1
+      const isLocal = !rawParams.insuplcAdmdvs || rawParams.insuplcAdmdvs.startsWith('3708')
 
-    try {
-      // 保底结算配置
-      configSettle1 = this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(rawParams.region, rawParams.version, '', '', rawParams.hosCode)]
-      // 适用于国新健康(存在按结算时间配置 & 存在按异地结算点值配置)
-      const month = new Date(rawParams.settleDate).getUTCMonth() + 1
-      configSettle2 = this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(rawParams.region, rawParams.version, month, rawParams.insuplcAdmdvs, rawParams.hosCode)]
-    } finally {
-      return configSettle2 ?? configSettle1
+      if (isLocal) {
+        return this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(rawParams.region, rawParams.version, settleMonth, '', rawParams.hosCode)]
+      } else {
+        // 自2023年5月起，省内异地为同一值
+        if (settleDate >= specialDate) {
+          return this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(rawParams.region, rawParams.version, settleMonth, '省内异地', rawParams.hosCode)]
+        } else {
+          return this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(rawParams.region, rawParams.version, settleMonth, rawParams.insuplcAdmdvs, rawParams.hosCode)]
+        }
+      }
+    } else {
+      return this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(rawParams.region, rawParams.version, '', '', rawParams.hosCode)]
     }
   }
 
