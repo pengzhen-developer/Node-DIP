@@ -149,7 +149,7 @@ export class Region_370800 extends RegionBaseService {
 
         // 写入 dip 组类型
         const groups = [...coreGroups, ...basicGroups].map((dip) => {
-          const oprnOprtCode = dip.oprnOprtCode?.split(/[\+\/]/)
+          const oprnOprtCode = dip.oprnOprtCode?.split(/[\,\/]/)
           dip.oprnOprtType = dip.oprnOprtType ?? this.getOprnOprtType(oprnOprtCode ?? '')
 
           return dip
