@@ -63,12 +63,12 @@ export class Region_370800 extends RegionBaseService {
         return sumAmount / dipAvgAmount
       }
       // 偏差类型 - 高倍率
-      else if (sumAmount >= dipAvgAmount * 2) {
+      else if (sumAmount > dipAvgAmount * 2 && sumAmount <= dipAvgAmount * 5) {
         dipInfo.dipSettleDeviation = EnumDeviation.高倍率
         return sumAmount / dipAvgAmount - 2 + hospitalFactor
       }
       // 偏差类型 - 极端异常
-      else if (sumAmount >= dipAvgAmount * 5) {
+      else if (sumAmount > dipAvgAmount * 5) {
         dipInfo.dipSettleDeviation = EnumDeviation.高倍率
         return hospitalFactor
       }
@@ -380,7 +380,13 @@ export class Region_370800 extends RegionBaseService {
         return $ExpressionMinorDiagCode.some((diagCode) => {
           const ccMcc = $ExpressionCcMcc[getCacheKey('', '', diagCode)]
           if (ccMcc && ccMcc.type === EnumCcMcc[type]) {
-            return ($ExpressionExcludeCcMcc[getCacheKey('', '', ccMcc.exclude)] ?? []).every((item) => item.diagCode !== $ExpressionMajorDiagCode[0])
+            if (ccMcc.include) {
+              return $ExpressionMajorDiagCode[0].startsWith(ccMcc.include)
+            } else if (ccMcc.exclude) {
+              return ($ExpressionExcludeCcMcc[getCacheKey('', '', ccMcc.exclude)] ?? []).every((item) => item.diagCode !== $ExpressionMajorDiagCode[0])
+            } else {
+              return true
+            }
           }
           return false
         })

@@ -17,6 +17,9 @@ export class DipConfigCcMcc {
   @Column('varchar', { name: 'exclude', nullable: true, comment: '排除表', length: 10 })
   exclude: string | null
 
+  @Column('varchar', { name: 'include', nullable: true, comment: '包含表-指亚目', length: 100 })
+  include: string | null
+
   @Column('varchar', { name: 'type', nullable: true, comment: '类型：cc/mcc', length: 10 })
   type: string | null
 
