@@ -17,6 +17,7 @@ import { Region_421000_2022 } from './utils/region.421000.2022'
 import { Region_421000_2023 } from './utils/region.421000.2023'
 import { Region_421200_2023 } from './utils/region.421200.2023'
 import { Region_370800_2023 } from './utils/region.370800.2023'
+import { Region_370900_2023 } from './utils/region.370900.2023'
 
 @Module({
   imports: [TypeOrmModule.forFeature([DipTodo, DipTodoResult])],
@@ -35,7 +36,8 @@ import { Region_370800_2023 } from './utils/region.370800.2023'
     Region_421000_2022,
     Region_421000_2023,
     Region_421200_2023,
-    Region_370800_2023
+    Region_370800_2023,
+    Region_370900_2023
   ]
 })
 export class DipModule {}

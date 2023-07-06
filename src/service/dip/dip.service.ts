@@ -309,6 +309,11 @@ export class DipService implements OnApplicationBootstrap {
           return this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(rawParams.region, rawParams.version, settleMonth, rawParams.insuplcAdmdvs, rawParams.hosCode)] ?? settleConfig
         }
       }
+    } else if (rawParams.region === EnumRegion.泰安市) {
+      const settleConfig = this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(rawParams.region, rawParams.version, '', '', rawParams.hosCode)]
+      const settleMonth = new Date(rawParams.settleDate).getUTCMonth() + 1
+
+      return this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(rawParams.region, rawParams.version, settleMonth, '', rawParams.hosCode)] ?? settleConfig
     } else {
       return this.CACHE_DIP_CONFIG_SETTLE[getCacheKey(rawParams.region, rawParams.version, '', '', rawParams.hosCode)]
     }
